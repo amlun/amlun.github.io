@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车用电池资产管理 - 移动端工作台</title>
+    
+    <!-- 引入 Tailwind CSS 引擎 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 配置自定义主题色 #00d084 (新能源绿) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdf7',
+                            100: '#dcfceb',
+                            200: '#bbf7d6',
+                            300: '#86efb8',
+                            400: '#4ade95',
+                            500: '#00d084',
+                            600: '#05a66b',
+                            700: '#048457',
+                            800: '#066847',
+                            900: '#06553b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- 引入 Phosphor 图标库 -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* 自定义滚动条 */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(209, 213, 219, 0.5); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(209, 213, 219, 0.8); }
+        
+        body { 
+            margin: 0; 
+            background-color: #f3f4f6; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 原生进入与过渡动画 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInRight { from { transform: translateX(15px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideInBottom { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .animate-in.fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .slide-in-from-right-4 { animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .slide-in-from-bottom-4 { animation: slideInBottom 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .slide-in-from-bottom-8 { animation: slideInBottom 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* --- 明显的高亮能量流动效 (充电向上亮带，放电向下暗带) --- */
+        @keyframes energyScanUp {
+            0% { transform: translateY(100%); }
+            100% { transform: translateY(-100%); }
+        }
+        @keyframes energyScanDown {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .animate-energy-up {
+            background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0) 100%);
+            animation: energyScanUp 1.2s linear infinite;
+        }
+        .animate-energy-down {
+            background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%);
+            animation: energyScanDown 2s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 核心图标映射组件 ---
+        const Icon = ({ name, size = 24, className = '' }) => <i className={`ph-bold ph-${name} ${className}`} style={{ fontSize: size }}></i>;
+        const IconFill = ({ name, size = 24, className = '' }) => <i className={`ph-fill ph-${name} ${className}`} style={{ fontSize: size }}></i>;
+
+        const Home = (p) => <IconFill name="house" {...p} />;
+        const List = (p) => <Icon name="list" {...p} />;
+        const MapIcon = (p) => <Icon name="map-trifold" {...p} />;
+        const User = (p) => <Icon name="user" {...p} />;
+        const Search = (p) => <Icon name="magnifying-glass" {...p} />;
+        const Battery = (p) => <Icon name="battery-full" {...p} />;
+        const BatteryWarning = (p) => <Icon name="battery-warning" {...p} />;
+        const ArrowLeft = (p) => <Icon name="arrow-left" {...p} />;
+        const MoreHorizontal = (p) => <Icon name="dots-three" {...p} />;
+        const Circle = (p) => <Icon name="circle" {...p} />;
+        const Wifi = (p) => <Icon name="wifi-high" {...p} />;
+        const BatteryFull = (p) => <IconFill name="battery-full" {...p} />;
+        const Signal = (p) => <IconFill name="cell-signal-full" {...p} />;
+        const Bell = (p) => <IconFill name="bell" {...p} />;
+        const ChevronRight = (p) => <Icon name="caret-right" {...p} />;
+        const Activity = (p) => <Icon name="pulse" {...p} />;
+        const Thermometer = (p) => <Icon name="thermometer" {...p} />;
+        const Zap = (p) => <IconFill name="lightning" {...p} />;
+        const Settings = (p) => <Icon name="gear" {...p} />;
+        const ShieldCheck = (p) => <Icon name="shield-check" {...p} />;
+        const AlertTriangle = (p) => <IconFill name="warning" {...p} />;
+        const Car = (p) => <IconFill name="car" {...p} />;
+        const MapPin = (p) => <IconFill name="map-pin" {...p} />;
+        const BarChart3 = (p) => <Icon name="chart-bar" {...p} />;
+        const Filter = (p) => <Icon name="funnel" {...p} />;
+        const Navigation = (p) => <Icon name="navigation-arrow" {...p} />;
+        const Heart = (p) => <IconFill name="heart" {...p} />;
+        const RotateCw = (p) => <Icon name="arrows-clockwise" {...p} />;
+        const TrendingUp = (p) => <Icon name="trend-up" {...p} />;
+        const Package = (p) => <IconFill name="package" {...p} />;
+        const Info = (p) => <IconFill name="info" {...p} />;
+        const ClockCounterClockwise = (p) => <Icon name="clock-counter-clockwise" {...p} />;
+        const Plus = (p) => <Icon name="plus" {...p} />;
+        const Minus = (p) => <Icon name="minus" {...p} />;
+        const Crosshair = (p) => <Icon name="crosshair" {...p} />;
+        const WifiSlash = (p) => <Icon name="wifi-slash" {...p} />;
+        
+        // --- 新增登录页所需图标 ---
+        const CheckCircle = (p) => <IconFill name="check-circle" {...p} />;
+        const LockKey = (p) => <Icon name="lock-key" {...p} />;
+        const WechatLogo = (p) => <IconFill name="wechat-logo" {...p} />;
+
+        // --- 新增历史轨迹页所需图标 ---
+        const Play = (p) => <IconFill name="play" {...p} />;
+        const Pause = (p) => <IconFill name="pause" {...p} />;
+        const Rewind = (p) => <IconFill name="rewind" {...p} />;
+        const FastForward = (p) => <IconFill name="fast-forward" {...p} />;
+        const FlagCheckered = (p) => <IconFill name="flag-checkered" {...p} />;
+
+        // --- Mock Data (更新了真实的 soh 独立字段) ---
+        const mockBatteries = [
+            { id: 'BAT-773201', plate: '粤B·D12345', type: '磷酸铁锂', status: 'online', power: 85, soh: 98.5, temp: 32, voltage: 355.2, current: 12.5, location: '深圳市南山区深南大道 10000 号', lat: 30, lng: 40, capacityAh: 280, energyKWh: 100 },
+            { id: 'BAT-773202', plate: '粤B·D67890', type: '三元锂', status: 'warning', power: 15, soh: 78.2, temp: 65, voltage: 320.1, current: 45.0, location: '深圳市福田区皇岗路 5000 号', lat: 60, lng: 70, capacityAh: 200, energyKWh: 64 },
+            { id: 'BAT-773203', plate: '粤B·D33445', type: '磷酸铁锂', status: 'offline', power: 0, soh: 92.0, temp: 25, voltage: 0, current: 0, location: '深圳市宝安区航城大道', lat: 45, lng: 20, capacityAh: 280, energyKWh: 100 },
+            { id: 'BAT-773204', plate: '粤A·D99887', type: '固态电池', status: 'online', power: 98, soh: 100, temp: 28, voltage: 360.5, current: -5.2, location: '广州市天河区珠江新城', lat: 20, lng: 80, capacityAh: 350, energyKWh: 126 },
+            { id: 'BAT-889900', plate: null, type: '磷酸铁锂', status: 'online', power: 60, soh: 99.8, temp: 26, voltage: 340.0, current: 0, location: '深圳市龙华区民治大道 888 号 (网点备用)', lat: 75, lng: 55, capacityAh: 200, energyKWh: 64 },
+        ];
+
+        // --- Mock 历史轨迹数据 ---
+        const mockTrajectory = [
+            { time: '08:00', x: 20, y: 70, speed: 0, power: 85, status: '静置启动' },
+            { time: '08:15', x: 35, y: 55, speed: 45, power: 84, status: '正常行驶' },
+            { time: '08:30', x: 45, y: 35, speed: 62, power: 82, status: '正常行驶' },
+            { time: '08:45', x: 65, y: 45, speed: 30, power: 81, status: '拥堵缓行' },
+            { time: '09:00', x: 80, y: 25, speed: 55, power: 78, status: '正常行驶' },
+            { time: '09:15', x: 85, y: 40, speed: 40, power: 76, status: '正常行驶' },
+            { time: '09:41', x: 85, y: 40, speed: 0, power: 75, status: '抵达静置' },
+        ];
+
+        // --- 主应用组件 ---
+        function App() {
+            const [activeTab, setActiveTab] = useState('home');
+            const [activePage, setActivePage] = useState('login'); // 默认进入登录页
+            const [selectedDevice, setSelectedDevice] = useState(null);
+            const [toastMsg, setToastMsg] = useState('');
+
+            const showToast = (msg) => {
+                setToastMsg(msg);
+                setTimeout(() => setToastMsg(''), 2000);
+            };
+
+            const goToDetail = (device) => {
+                setSelectedDevice(device);
+                setActivePage('detail');
+            };
+
+            const goToTrajectory = () => {
+                setActivePage('trajectory');
+            };
+
+            const goBack = () => {
+                if (activePage === 'trajectory') {
+                    setActivePage('detail');
+                } else {
+                    setActivePage('main');
+                    setSelectedDevice(null);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 font-sans text-gray-800">
+                    <div className="w-full max-w-[400px] h-[800px] bg-gray-50 flex flex-col relative shadow-2xl rounded-[3rem] border-[8px] border-gray-900 overflow-hidden ring-1 ring-gray-900/10">
+                        
+                        {/* 顶部系统状态栏 (登录页设为透明沉浸式) */}
+                        <div className={`h-12 w-full flex justify-between items-end px-6 pb-2 text-[11px] font-semibold z-50 shrink-0 ${activePage === 'login' ? 'bg-transparent absolute top-0 text-gray-800' : 'bg-white/95 backdrop-blur'}`}>
+                            <span>09:41</span>
+                            <div className="flex items-center space-x-2 text-gray-800">
+                                <Signal size={14} />
+                                <Wifi size={14} />
+                                <BatteryFull size={16} />
+                            </div>
+                        </div>
+
+                        {/* 微信导航栏 (登录页隐藏) */}
+                        {activePage !== 'login' && (
+                            <div className="h-12 w-full bg-white/80 backdrop-blur-lg flex items-center justify-between px-4 z-40 shrink-0 sticky top-0 border-b border-gray-100/50">
+                                <div className="flex-1 flex items-center">
+                                    {(activePage === 'detail' || activePage === 'trajectory') && (
+                                        <button onClick={goBack} className="flex items-center justify-center w-8 h-8 -ml-2 mr-1.5 hover:bg-gray-100 rounded-full transition-all active:scale-90">
+                                            <ArrowLeft size={20} className="text-gray-900" />
+                                        </button>
+                                    )}
+                                    <span className="font-semibold text-[17px] text-gray-900 truncate tracking-wide">
+                                        {activePage === 'detail' ? '电池详情' : (
+                                            activePage === 'trajectory' ? '历史轨迹回放' :
+                                            activeTab === 'home' ? '资产总览' :
+                                            activeTab === 'devices' ? '电池列表' :
+                                            activeTab === 'map' ? '位置监控' : '个人中心'
+                                        )}
+                                    </span>
+                                </div>
+                                
+                                <div className="flex items-center bg-white/50 backdrop-blur-md border border-gray-200/80 rounded-full px-3 py-1 shadow-sm space-x-2 shrink-0">
+                                    <MoreHorizontal size={18} className="text-gray-900" />
+                                    <div className="w-[1px] h-3.5 bg-gray-300"></div>
+                                    <Circle size={16} className="text-gray-900" />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 主内容滚动区 (根据页面状态动态调整底部留白) */}
+                        <div className={`flex-1 overflow-y-auto bg-gray-50/50 custom-scrollbar relative z-0 ${activePage === 'main' ? 'pb-24' : (activePage === 'detail' || activePage === 'trajectory') ? 'pb-6' : 'pb-0'}`}>
+                            {activePage === 'login' && <LoginView onLogin={() => { setActivePage('main'); setActiveTab('home'); }} showToast={showToast} />}
+                            {activePage === 'main' && activeTab === 'home' && <HomeView onSelect={goToDetail} showToast={showToast} />}
+                            {activePage === 'main' && activeTab === 'devices' && <DeviceListView onSelect={goToDetail} showToast={showToast} />}
+                            {activePage === 'main' && activeTab === 'map' && <MapView onSelect={goToDetail} showToast={showToast} />}
+                            {activePage === 'main' && activeTab === 'profile' && <ProfileView onLogout={() => setActivePage('login')} showToast={showToast} />}
+                            
+                            {activePage === 'detail' && selectedDevice && <DeviceDetailView device={selectedDevice} showToast={showToast} goToTrajectory={goToTrajectory} />}
+                            {activePage === 'trajectory' && selectedDevice && <TrajectoryView device={selectedDevice} showToast={showToast} />}
+                        </div>
+
+                        {/* 底部 Tab 导航 */}
+                        {activePage === 'main' && (
+                            <div className="absolute bottom-0 w-full h-20 bg-white/85 backdrop-blur-xl border-t border-gray-100/50 flex justify-around items-start pt-2 px-2 pb-6 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+                                <TabItem icon={Home} label="首页" isActive={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+                                <TabItem icon={List} label="列表" isActive={activeTab === 'devices'} onClick={() => setActiveTab('devices')} />
+                                <TabItem icon={MapIcon} label="地图" isActive={activeTab === 'map'} onClick={() => setActiveTab('map')} />
+                                <TabItem icon={User} label="我的" isActive={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+                            </div>
+                        )}
+
+                        {/* 全局轻提示 (Toast) */}
+                        {toastMsg && (
+                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-900/90 text-white px-5 py-3 rounded-xl text-[13px] font-medium z-[100] flex items-center shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                                <Info size={16} className="mr-2 text-primary-400" />
+                                {toastMsg}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function TabItem({ icon: Icon, label, isActive, onClick }) {
+            return (
+                <button 
+                    onClick={onClick} 
+                    className={`flex flex-col items-center justify-center w-16 space-y-1 transition-all duration-200 active:scale-90 ${isActive ? 'translate-y-[-2px]' : ''}`}
+                >
+                    <Icon size={24} className={isActive ? "text-primary-500 drop-shadow-sm" : "text-gray-400"} />
+                    <span className={`text-[10px] font-semibold tracking-wide ${isActive ? "text-primary-500" : "text-gray-400"}`}>{label}</span>
+                </button>
+            );
+        }
+
+        // --- 视图组件：工作台首页 ---
+        function HomeView({ onSelect, showToast }) {
+            return (
+                <div className="p-4 space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="flex justify-between items-center bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 p-6 rounded-[1.5rem] text-white shadow-lg shadow-primary-500/30 relative overflow-hidden">
+                        <div className="absolute right-0 top-0 opacity-20 w-32 h-32 bg-white rounded-full blur-2xl transform translate-x-1/3 -translate-y-1/3"></div>
+                        <div className="absolute left-0 bottom-0 opacity-10 w-24 h-24 bg-black rounded-full blur-xl transform -translate-x-1/3 translate-y-1/3"></div>
+                        <div className="relative z-10">
+                            <h2 className="text-[19px] font-bold tracking-wide">顺丰速运（深圳）车队</h2>
+                            <p className="text-primary-50 text-[11px] mt-1.5 opacity-90 tracking-wider">智能电池资产管理服务</p>
+                        </div>
+                        <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md relative z-10 border border-white/20 shadow-inner" onClick={() => showToast('暂无新消息')}>
+                            <Bell size={20} className="text-white" />
+                            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-primary-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <h3 className="font-bold text-gray-900 text-[14px] px-1 tracking-wider">资产概览</h3>
+                        <div className="grid grid-cols-2 gap-3.5">
+                            <div className="bg-white p-4 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/80 transition-transform active:scale-[0.98] relative overflow-hidden">
+                                <div className="absolute -right-4 -bottom-4 opacity-[0.03] text-gray-900"><Package size={80} /></div>
+                                <div className="text-gray-400 text-[11px] mb-1 font-medium relative z-10">电池总资产</div>
+                                <div className="text-[26px] font-black text-gray-900 tracking-tight relative z-10">4,204<span className="text-xs font-semibold text-gray-400 ml-1">组</span></div>
+                            </div>
+                            <div className="bg-white p-4 rounded-3xl shadow-[0_4px_20px_rgba(0,208,132,0.06)] border border-primary-50/50 transition-transform active:scale-[0.98] relative overflow-hidden">
+                                <div className="absolute -right-4 -bottom-4 opacity-[0.04] text-primary-500"><BatteryFull size={80} /></div>
+                                <div className="text-gray-400 text-[11px] mb-1 font-medium relative z-10">在线运行中</div>
+                                <div className="text-[26px] font-black text-primary-500 tracking-tight relative z-10">4,150<span className="text-xs font-semibold text-primary-300 ml-1">组</span></div>
+                            </div>
+                            <div className="bg-gradient-to-br from-red-50 to-white p-4 rounded-3xl shadow-[0_4px_20px_rgba(239,68,68,0.06)] border border-red-100/50 transition-transform active:scale-[0.98] relative overflow-hidden">
+                                <div className="absolute -right-4 -bottom-4 opacity-[0.05] text-red-500"><AlertTriangle size={80} /></div>
+                                <div className="text-red-400 text-[11px] mb-1 font-medium flex items-center relative z-10"><AlertTriangle size={12} className="mr-1"/>异常预警</div>
+                                <div className="text-[26px] font-black text-red-600 tracking-tight relative z-10">12<span className="text-xs font-semibold text-red-400 ml-1">组</span></div>
+                            </div>
+                            <div className="bg-gray-50/80 p-4 rounded-3xl border border-gray-200/60 transition-transform active:scale-[0.98] relative overflow-hidden">
+                                <div className="absolute -right-4 -bottom-4 opacity-[0.04] text-gray-500"><WifiSlash size={80} /></div>
+                                <div className="text-gray-500 text-[11px] mb-1 font-medium relative z-10">离线/未激活</div>
+                                <div className="text-[26px] font-black text-gray-700 tracking-tight relative z-10">42<span className="text-xs font-semibold text-gray-400 ml-1">组</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-3xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/80">
+                        <h3 className="font-bold text-gray-900 mb-5 text-[14px] tracking-wider">常用功能</h3>
+                        <div className="grid grid-cols-4 gap-4 text-center">
+                            {[
+                                { icon: Search, label: '电池查询', color: 'bg-primary-50 text-primary-600 shadow-primary-100/50' },
+                                { icon: BarChart3, label: '能耗报表', color: 'bg-emerald-50 text-emerald-600 shadow-emerald-100/50' },
+                                { icon: AlertTriangle, label: '告警工单', color: 'bg-red-50 text-red-600 shadow-red-100/50' },
+                                { icon: Settings, label: '企业设置', color: 'bg-orange-50 text-orange-600 shadow-orange-100/50' }
+                            ].map((item, i) => (
+                                <div key={i} onClick={() => showToast(`正在加载${item.label}...`)} className="flex flex-col items-center group cursor-pointer active:scale-95 transition-all">
+                                    <div className={`w-[46px] h-[46px] rounded-[16px] flex items-center justify-center mb-2.5 shadow-sm border border-white/50 ${item.color}`}>
+                                        <item.icon size={22} className="drop-shadow-sm" />
+                                    </div>
+                                    <span className="text-[11px] text-gray-600 font-medium">{item.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className="font-bold text-gray-900 mb-3 text-[14px] flex justify-between items-center px-1 tracking-wider">
+                            最新异常告警
+                            <span className="text-[12px] text-primary-600 font-semibold active:opacity-70" onClick={() => showToast('已展开全部记录')}>查看全部 (12)</span>
+                        </h3>
+                        <div className="bg-white rounded-3xl flex items-start space-x-4 border border-gray-100/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] active:scale-[0.98] transition-transform cursor-pointer p-5">
+                            <div className="w-11 h-11 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0 border border-red-100 shadow-inner">
+                                <Thermometer size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex justify-between items-start">
+                                    <h4 className="text-[14px] font-bold text-gray-900">电芯温度过高预警</h4>
+                                    <span className="text-[10px] text-gray-400 font-medium bg-gray-50 px-2 py-0.5 rounded-full">10分钟前</span>
+                                </div>
+                                <p className="text-[12px] text-gray-500 mt-2 leading-relaxed">绑定车辆 <span className="text-primary-600 font-bold bg-primary-50 px-1.5 py-0.5 rounded-md mx-0.5">粤B·D67890</span> 的电池包当前温度达 65°C，存在热失控风险。</p>
+                                <div className="mt-3.5 flex space-x-2">
+                                    <button 
+                                        onClick={() => onSelect(mockBatteries[1])}
+                                        className="text-[12px] bg-red-500 text-white px-5 py-2 rounded-full font-bold shadow-md shadow-red-500/20 active:scale-95 transition-all"
+                                    >
+                                        立即定位分析
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 视图组件：电池列表 ---
+        function DeviceListView({ onSelect, showToast }) {
+            const [searchTerm, setSearchTerm] = useState('');
+
+            const filteredBatteries = mockBatteries.filter(battery => {
+                if (!searchTerm) return true;
+                const term = searchTerm.toLowerCase();
+                const plateMatch = battery.plate && battery.plate.toLowerCase().includes(term);
+                const idMatch = battery.id.toLowerCase().includes(term);
+                return plateMatch || idMatch;
+            });
+
+            return (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-300 flex flex-col h-full">
+                    <div className="bg-white/90 backdrop-blur-md sticky top-0 z-20 border-b border-gray-100/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                        <div className="p-3.5">
+                            <div className="relative group">
+                                <Search size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-primary-500" />
+                                <input 
+                                    type="text" 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="搜索电池编号、车牌号..." 
+                                    className="w-full bg-gray-100/80 text-[14px] rounded-2xl py-3 pl-11 pr-10 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:bg-white transition-all border border-transparent focus:border-primary-100 placeholder:text-gray-400 font-medium"
+                                />
+                                {searchTerm && (
+                                    <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                                        <Icon name="x-circle" size={18} className="ph-fill" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-3.5 space-y-3.5 pb-24">
+                        {filteredBatteries.length > 0 ? filteredBatteries.map((battery) => (
+                            <div 
+                                key={battery.id} 
+                                onClick={() => onSelect(battery)}
+                                className="group relative bg-white rounded-[1.25rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/80 flex flex-col active:scale-[0.97] transition-all cursor-pointer hover:shadow-md p-4"
+                            >
+                                <div className="relative z-10 flex justify-between items-center mb-3.5 border-b border-gray-50 pb-3.5">
+                                    <div className="flex items-center space-x-3">
+                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-inner ${battery.plate ? 'bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200/50' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200/50'}`}>
+                                            {battery.plate ? <Car size={16} className="text-primary-600" /> : <Package size={16} className="text-gray-500" />}
+                                        </div>
+                                        <span className="font-extrabold text-gray-900 text-[16px] truncate max-w-[150px] tracking-tight">
+                                            {battery.plate ? battery.plate : `SN: ${battery.id}`}
+                                        </span>
+                                    </div>
+                                    <span className={`text-[11px] px-2.5 py-1 rounded-full flex items-center shrink-0 font-bold ${
+                                        battery.status === 'online' ? 'bg-primary-50 text-primary-600 border border-primary-200/50' : 
+                                        battery.status === 'warning' ? 'bg-red-50 text-red-600 border border-red-200/50' : 
+                                        'bg-gray-100 text-gray-500 border border-gray-200/50'
+                                    }`}>
+                                        {battery.status === 'online' ? <Wifi size={13} className="mr-1.5 opacity-90"/> : null}
+                                        {battery.status === 'warning' ? <AlertTriangle size={12} className="mr-1"/> : null}
+                                        {battery.status === 'offline' ? <WifiSlash size={12} className="mr-1 text-gray-400"/> : null}
+                                        {battery.status === 'online' ? '在线' : battery.status === 'warning' ? '异常' : '离线'}
+                                    </span>
+                                </div>
+                                
+                                {/* 高级感仪表盘风格数据展示 */}
+                                <div className="relative z-10 flex justify-between items-center mb-4 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100/80 shadow-[inset_0_2px_8px_rgba(0,0,0,0.02)]">
+                                    {/* SOC 电量 */}
+                                    <div className="flex flex-col flex-1 pr-2">
+                                        <div className="text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider flex items-center">
+                                            <BatteryFull size={12} className="mr-1 text-primary-400"/> SOC
+                                        </div>
+                                        <div className="font-black text-gray-900 text-[18px] flex items-baseline tracking-tighter drop-shadow-sm">
+                                            {battery.power}<span className="text-[10px] ml-0.5 font-bold text-gray-400">%</span>
+                                        </div>
+                                        <div className="w-full h-1 bg-gray-200/80 rounded-full mt-1.5 overflow-hidden">
+                                            <div className={`h-full rounded-full ${battery.power < 20 ? 'bg-red-400' : 'bg-primary-400'}`} style={{ width: `${battery.power}%` }}></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="w-px h-10 bg-gray-200/80 mx-2"></div>
+
+                                    {/* SOH 健康度 */}
+                                    <div className="flex flex-col flex-1 px-2">
+                                        <div className="text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider flex items-center">
+                                            <Heart size={12} className="mr-1 text-red-400"/> SOH
+                                        </div>
+                                        <div className="font-black text-gray-900 text-[18px] flex items-baseline tracking-tighter drop-shadow-sm">
+                                            {battery.soh}<span className="text-[10px] ml-0.5 font-bold text-gray-400">%</span>
+                                        </div>
+                                        <div className="w-full h-1 bg-gray-200/80 rounded-full mt-1.5 overflow-hidden">
+                                            <div className={`h-full rounded-full ${battery.soh >= 90 ? 'bg-green-400' : battery.soh >= 80 ? 'bg-orange-400' : 'bg-red-400'}`} style={{ width: `${battery.soh}%` }}></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="w-px h-10 bg-gray-200/80 mx-2"></div>
+
+                                    {/* STAT 运行状态 */}
+                                    <div className="flex flex-col flex-1 pl-2">
+                                        <div className="text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider flex items-center">
+                                            <Activity size={12} className="mr-1 text-blue-400"/> STAT
+                                        </div>
+                                        <div className={`font-black text-[15px] flex items-baseline tracking-tight drop-shadow-sm mt-0.5 ${battery.current < 0 ? 'text-primary-600' : battery.current > 0 ? 'text-blue-500' : 'text-gray-500'}`}>
+                                            {battery.current === 0 ? '静置' : battery.current > 0 ? '放电' : '充电'}
+                                            {battery.current !== 0 && <span className="text-[12px] ml-0.5 font-bold">{Math.abs(battery.current)}A</span>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="relative z-10 flex justify-between items-center pt-1 px-1">
+                                    <div className="flex items-center text-[12px] text-gray-500 truncate pr-4 font-medium">
+                                        <MapPin size={14} className="mr-1.5 shrink-0 text-gray-400" /> 
+                                        <span className="truncate">{battery.location}</span>
+                                    </div>
+                                    <ChevronRight size={16} className="text-gray-300 shrink-0" />
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="text-center py-12 flex flex-col items-center">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                                    <Search size={28} className="text-gray-300" />
+                                </div>
+                                <p className="text-[14px] text-gray-500 font-semibold">未找到匹配的电池或车辆</p>
+                            </div>
+                        )}
+                        
+                        {filteredBatteries.length > 0 && (
+                            <div className="text-center text-[11px] text-gray-400 pt-5 pb-3 font-semibold flex items-center justify-center">
+                                <span className="w-8 h-px bg-gray-200 mr-2.5"></span>
+                                已经到底啦
+                                <span className="w-8 h-px bg-gray-200 ml-2.5"></span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 视图组件：监控地图 ---
+        function MapView({ onSelect, showToast }) {
+            const [selectedPin, setSelectedPin] = useState(null);
+            
+            // 地图交互状态
+            const [zoom, setZoom] = useState(1);
+            const [pan, setPan] = useState({ x: 0, y: 0 });
+            const [isDragging, setIsDragging] = useState(false);
+            const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+            const [hasDragged, setHasDragged] = useState(false);
+
+            const handlePointerDown = (e) => {
+                setIsDragging(true);
+                setHasDragged(false);
+                setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+                e.currentTarget.setPointerCapture(e.pointerId);
+            };
+
+            const handlePointerMove = (e) => {
+                if (!isDragging) return;
+                setHasDragged(true);
+                setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+            };
+
+            const handlePointerUp = (e) => {
+                setIsDragging(false);
+                e.currentTarget.releasePointerCapture(e.pointerId);
+            };
+
+            const handlePinClick = (e, battery) => {
+                e.stopPropagation();
+                setSelectedPin(battery);
+            };
+
+            const handleZoomIn = () => setZoom(z => Math.min(z + 0.6, 3));
+            const handleZoomOut = () => setZoom(z => Math.max(z - 0.6, 0.6));
+            const handleLocate = () => {
+                setZoom(1);
+                setPan({ x: 0, y: 0 });
+                showToast('已回到默认监控视角');
+            };
+
+            return (
+                <div className="h-full w-full relative animate-in fade-in duration-300 bg-gray-100 overflow-hidden">
+                    <div 
+                        className={`absolute inset-0 z-0 touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                        onPointerDown={handlePointerDown}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerCancel={handlePointerUp}
+                    >
+                        <div 
+                            className="absolute inset-0 w-full h-full"
+                            style={{
+                                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                                transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0, 0, 1)',
+                                transformOrigin: 'center center'
+                            }}
+                        >
+                            <div className="absolute top-1/2 left-1/2 w-[300%] h-[300%] -translate-x-1/2 -translate-y-1/2 opacity-30" style={{ backgroundImage: 'radial-gradient(#94a3b8 2px, transparent 2px)', backgroundSize: '40px 40px' }}></div>
+                            <div className="absolute top-1/4 left-[-50%] w-[200%] h-4 bg-white transform -rotate-12 shadow-sm"></div>
+                            <div className="absolute top-0 left-1/3 w-6 h-[200%] bg-white transform rotate-12 shadow-sm"></div>
+                            <div className="absolute bottom-1/3 left-[-50%] w-[200%] h-8 bg-white transform rotate-6 shadow-sm"></div>
+                            <div className="absolute top-1/2 right-1/4 w-4 h-[200%] bg-white transform -rotate-6 shadow-sm"></div>
+                            
+                            {mockBatteries.map((battery) => (
+                                <div 
+                                    key={battery.id}
+                                    className="absolute flex flex-col items-center justify-center cursor-pointer"
+                                    style={{ 
+                                        top: `${battery.lat}%`, 
+                                        left: `${battery.lng}%`, 
+                                        transform: `translate(-50%, -50%) scale(${1/zoom})`, 
+                                        transformOrigin: 'center center'
+                                    }}
+                                    onPointerDown={(e) => e.stopPropagation()} 
+                                    onClick={(e) => handlePinClick(e, battery)}
+                                >
+                                    <div className={`px-2.5 py-1.5 rounded-full shadow-md border-2 border-white font-bold text-[12px] flex items-center transition-all ${selectedPin?.id === battery.id ? 'scale-110 shadow-lg' : 'hover:scale-110'} ${battery.status === 'warning' ? 'bg-red-500 text-white' : battery.plate ? 'bg-primary-500 text-white' : 'bg-gray-600 text-white'}`}>
+                                        {battery.status === 'warning' ? <AlertTriangle size={14} className="mr-1"/> : battery.plate ? <Car size={14} className="mr-1"/> : <Package size={14} className="mr-1"/>}
+                                        {battery.plate ? battery.plate.substring(3) : battery.id.slice(-4)}
+                                    </div>
+                                    <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-transparent border-t-white mt-[1px]"></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="absolute top-4 left-4 right-4 z-10 flex space-x-2 pointer-events-none">
+                        <div className="flex-1 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-lg shadow-gray-200/50 border border-white/20 flex items-center pointer-events-auto">
+                            <div className="w-10 h-10 rounded-[14px] bg-primary-50 text-primary-500 flex items-center justify-center mr-3 shrink-0 border border-primary-100/50">
+                                <MapIcon size={20} />
+                            </div>
+                            <div>
+                                <div className="text-[14px] font-bold text-gray-900">资产监控中心</div>
+                                <div className="text-[10px] text-gray-500 font-medium mt-0.5">当前可视区域 4 台在线</div>
+                            </div>
+                        </div>
+                        <button onClick={() => showToast('筛选功能开发中')} className="w-16 h-16 bg-white/95 backdrop-blur-md rounded-2xl shadow-lg shadow-gray-200/50 border border-white/20 flex items-center justify-center shrink-0 active:scale-95 transition-transform pointer-events-auto">
+                            <Filter size={22} className="text-gray-700" />
+                        </button>
+                    </div>
+
+                    <div className={`absolute right-4 z-20 flex flex-col space-y-3 pointer-events-auto transition-all duration-300 ease-out ${selectedPin ? 'bottom-[240px]' : 'bottom-8'}`}>
+                        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg shadow-gray-200/50 border border-white/50 p-1 flex flex-col items-center">
+                            <button onClick={handleZoomIn} className="w-11 h-11 flex justify-center items-center text-gray-700 hover:bg-gray-100 active:bg-gray-200 rounded-[14px] transition-colors">
+                                <Plus size={20} />
+                            </button>
+                            <div className="w-6 h-px bg-gray-200 my-0.5"></div>
+                            <button onClick={handleZoomOut} className="w-11 h-11 flex justify-center items-center text-gray-700 hover:bg-gray-100 active:bg-gray-200 rounded-[14px] transition-colors">
+                                <Minus size={20} />
+                            </button>
+                        </div>
+                        <button onClick={handleLocate} className="w-[52px] h-[52px] bg-white/90 backdrop-blur-md rounded-2xl shadow-lg shadow-gray-200/50 border border-white/50 flex justify-center items-center text-primary-600 hover:bg-gray-100 active:bg-gray-200 transition-all active:scale-95">
+                            <Crosshair size={24} />
+                        </button>
+                    </div>
+
+                    {selectedPin && (
+                        <div className="absolute bottom-6 left-4 right-4 z-20 bg-white/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-gray-100 animate-in slide-in-from-bottom-8">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center space-x-3.5">
+                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white shadow-inner shrink-0 ${selectedPin.status === 'warning' ? 'bg-gradient-to-br from-red-400 to-red-600' : selectedPin.plate ? 'bg-gradient-to-br from-primary-400 to-primary-600' : 'bg-gradient-to-br from-gray-500 to-gray-700'}`}>
+                                        {selectedPin.plate ? <Car size={20} /> : <Package size={20} />}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-gray-900 text-[16px]">{selectedPin.plate ? selectedPin.plate : `SN: ${selectedPin.id}`}</h4>
+                                        <p className="text-[11px] text-gray-500 font-semibold mt-0.5">{selectedPin.plate ? selectedPin.type : `未绑定车辆 | ${selectedPin.type}`}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setSelectedPin(null)} className="text-gray-400 p-2 hover:bg-gray-100 rounded-full active:scale-90 transition-all">
+                                    <Icon name="x" size={18} />
+                                </button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 mb-5 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
+                                <div className="text-[12px] font-medium"><span className="text-gray-500 mr-1">电量:</span> <span className="font-black text-gray-900">{selectedPin.power}%</span></div>
+                                <div className="text-[12px] font-medium"><span className="text-gray-500 mr-1">温度:</span> <span className={`font-black ${selectedPin.temp > 40 ? 'text-red-500' : 'text-gray-900'}`}>{selectedPin.temp}°C</span></div>
+                                <div className="text-[12px] font-medium col-span-2 truncate"><span className="text-gray-500 mr-1">位置:</span> <span className="text-gray-800 font-bold">{selectedPin.location}</span></div>
+                            </div>
+
+                            <button 
+                                onClick={() => onSelect(selectedPin)}
+                                className="w-full bg-primary-500 text-white rounded-2xl py-3.5 text-[14px] font-bold shadow-lg shadow-primary-500/20 active:scale-[0.98] transition-all flex justify-center items-center"
+                            >
+                                查看详细状态 <ChevronRight size={16} className="ml-1" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // --- 视图组件：电池详情 ---
+        function DeviceDetailView({ device, showToast, goToTrajectory }) {
+            const [chartTab, setChartTab] = useState('power'); 
+            const [activeDataIndex, setActiveDataIndex] = useState(null); // 当前选中的图表数据点
+
+            // 切换 Tab 时，重置选中的柱子
+            const handleTabChange = (tab) => {
+                setChartTab(tab);
+                setActiveDataIndex(null);
+            };
+
+            // 生成 X 轴日期 (模拟近 12 天)
+            const dates = ['10-01', '10-02', '10-03', '10-04', '10-05', '10-06', '10-07', '10-08', '10-09', '10-10', '10-11', '10-12'];
+            
+            // 模拟充放电数据
+            const chargeData = [45, 60, 30, 80, 55, 40, 75, 50, 65, 85, 40, 70];
+            const dischargeData = [40, 55, 35, 75, 60, 45, 70, 55, 60, 80, 45, 65];
+            
+            // SOH 每天以极缓慢的速度下降，保证最后一天是当前的真实 device.soh
+            const sohData = Array.from({length: 12}, (_, i) => Math.min(100, device.soh + (11 - i) * 0.05));
+
+            return (
+                <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 pb-6">
+                    <div className="bg-white p-5 pt-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-b-[2.5rem] border-b border-gray-100/80">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <div className="flex items-center space-x-2.5 mb-1.5">
+                                    <h2 className="text-[24px] font-black text-gray-900 tracking-tight">{device.plate ? device.plate : `SN: ${device.id}`}</h2>
+                                    <span className={`text-[11px] px-2.5 py-1 rounded-full border shrink-0 font-bold ${
+                                        device.status === 'online' ? 'bg-primary-50 text-primary-600 border-primary-200/50' : 
+                                        device.status === 'warning' ? 'bg-red-50 text-red-600 border-red-200/50' : 
+                                        'bg-gray-50 text-gray-500 border-gray-200/50'
+                                    }`}>
+                                        {device.status === 'online' ? '在线' : device.status === 'warning' ? '异常' : '离线'}
+                                    </span>
+                                </div>
+                                <p className="text-gray-400 text-[12px] font-medium tracking-wide">
+                                    {device.plate ? `SN: ${device.id} | CATL-LFP-${device.energyKWh}KWH` : `未绑定车辆 | CATL-LFP-${device.energyKWh}KWH`}
+                                </p>
+                            </div>
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner shrink-0 border ${device.plate ? 'border-primary-100 bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600' : 'border-gray-100 bg-gradient-to-br from-gray-50 to-gray-100 text-gray-500'}`}>
+                                {device.plate ? <Car size={24} /> : <Package size={24} />}
+                            </div>
+                        </div>
+
+                        <div className="mt-7 bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 rounded-3xl p-6 text-white shadow-xl shadow-primary-500/30 relative overflow-hidden">
+                            <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-4 translate-y-4">
+                                <Zap size={140} />
+                            </div>
+                            <div className="absolute left-0 top-0 opacity-20 w-40 h-40 bg-white rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+                            
+                            <div className="flex items-end justify-between relative z-10">
+                                <div>
+                                    <div className="text-primary-50 text-[12px] mb-1 font-medium tracking-wider">剩余 SOC 电量</div>
+                                    <div className="flex items-baseline">
+                                        <span className="text-[64px] leading-none font-black tracking-tighter drop-shadow-md">{device.power}</span>
+                                        <span className="text-2xl ml-1 font-bold">%</span>
+                                    </div>
+                                    {device.current < 0 ? (
+                                        <div className="flex items-center text-yellow-300 bg-white/20 px-2.5 py-1 rounded-full border border-white/20 w-max mt-2.5 backdrop-blur-md shadow-sm">
+                                            <Zap size={14} weight="fill" className="mr-1 animate-pulse" />
+                                            <span className="text-[10px] font-bold tracking-widest">充电中</span>
+                                        </div>
+                                    ) : device.current > 0 ? (
+                                        <div className="flex items-center text-green-200 bg-white/20 px-2.5 py-1 rounded-full border border-white/20 w-max mt-2.5 backdrop-blur-md shadow-sm">
+                                            <Activity size={14} weight="bold" className="mr-1 animate-pulse" />
+                                            <span className="text-[10px] font-bold tracking-widest">车辆运行中</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center text-white/80 bg-white/10 px-2.5 py-1 rounded-full border border-white/10 w-max mt-2.5 backdrop-blur-md">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-white/60 mr-1.5"></span>
+                                            <span className="text-[10px] font-bold tracking-widest">静置休眠</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="w-[46px] h-[76px] border-[3px] border-white/40 rounded-xl p-1 relative flex flex-col justify-end backdrop-blur-sm shadow-inner">
+                                    <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-2 bg-white/60 rounded-t-sm"></div>
+                                    <div className={`w-full rounded-[6px] transition-all duration-1000 ease-out shadow-sm relative overflow-hidden ${device.power < 20 ? 'bg-gradient-to-t from-red-500 to-red-400' : 'bg-gradient-to-t from-white to-white/90'}`} style={{ height: `${device.power}%` }}>
+                                        {/* 充电时：明显的向上高亮扫描带 */}
+                                        {device.current < 0 && <div className="absolute inset-0 w-full h-[150%] animate-energy-up"></div>}
+
+                                        {/* 放电时：明显的向下暗色扫描带 */}
+                                        {device.current > 0 && <div className="absolute inset-0 w-full h-[150%] animate-energy-down"></div>}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-7 grid grid-cols-3 gap-3 border-t border-white/20 pt-5 relative z-10">
+                                <div>
+                                    <div className="text-primary-100 text-[11px] font-medium tracking-wide">总电压 (V)</div>
+                                    <div className="font-bold text-[16px] mt-0.5">{device.voltage}</div>
+                                </div>
+                                <div>
+                                    <div className="text-primary-100 text-[11px] font-medium tracking-wide">总电流 (A)</div>
+                                    <div className="font-bold text-[16px] mt-0.5">{device.current}</div>
+                                </div>
+                                <div>
+                                    <div className="text-primary-100 text-[11px] font-medium tracking-wide">最高温度 (°C)</div>
+                                    <div className={`font-bold text-[16px] mt-0.5 ${device.temp > 40 ? 'text-red-300' : ''}`}>{device.temp}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex space-x-3 mt-6">
+                            {/* 左侧：运行诊断按钮微调，增加淡淡的渐变和边框 */}
+                            <button onClick={() => showToast('正在请求诊断接口...')} className="flex-1 bg-gradient-to-br from-primary-50 to-primary-100/50 border border-primary-200/50 text-primary-600 rounded-2xl py-3.5 text-[14px] font-bold flex items-center justify-center active:scale-95 transition-all">
+                                <Activity size={18} className="mr-1.5"/> 运行诊断
+                            </button>
+                            
+                            {/* 右侧：全新设计的历史轨迹按钮 (黑金空间版) */}
+                            <button onClick={goToTrajectory} className="flex-1 relative bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-2xl py-3.5 text-[14px] font-bold flex items-center justify-center shadow-lg shadow-gray-900/20 active:scale-95 transition-all overflow-hidden group">
+                                {/* 专属底纹：科技感地图坐标网格 */}
+                                <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '8px 8px' }}></div>
+                                
+                                {/* Hover 流光扫过特效 */}
+                                <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:left-[100%] transition-all duration-700 ease-out"></div>
+                                
+                                <div className="relative z-10 flex items-center">
+                                    <MapIcon size={16} className="mr-1.5 text-gray-300"/> 
+                                    历史轨迹
+                                    <ChevronRight size={14} className="ml-0.5 text-gray-400 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="px-4 space-y-4">
+                        <div className="bg-white rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/80">
+                            <h3 className="font-bold text-gray-900 text-[13px] mb-3 tracking-wider">使用情况</h3>
+                            <div className="grid grid-cols-2 gap-2.5">
+                                {/* SOH 图标固定为红色爱心 */}
+                                <div className="bg-gray-50/80 rounded-2xl p-3 flex items-center space-x-2.5 border border-gray-100/50">
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-inner bg-gradient-to-br from-red-50 to-red-100 text-red-500">
+                                        <Heart size={16} />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-gray-400 mb-0.5 font-medium">健康度 (SOH)</div>
+                                        <div className="font-black text-[14px] text-gray-900 tracking-tight">{device.soh} <span className="text-[10px] text-gray-400 font-semibold">%</span></div>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50/80 rounded-2xl p-3 flex items-center space-x-2.5 border border-gray-100/50">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-50 to-orange-100 text-orange-500 flex items-center justify-center shrink-0 shadow-inner">
+                                        <Zap size={16} />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-gray-400 mb-0.5 font-medium">累计放电</div>
+                                        <div className="font-black text-[14px] text-gray-900 tracking-tight">12,450 <span className="text-[10px] text-gray-400 font-semibold">kWh</span></div>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50/80 rounded-2xl p-3 flex items-center space-x-2.5 border border-gray-100/50">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 flex items-center justify-center shrink-0 shadow-inner">
+                                        <BatteryFull size={16} />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-gray-400 mb-0.5 font-medium">累计充电</div>
+                                        <div className="font-black text-[14px] text-gray-900 tracking-tight">12,500 <span className="text-[10px] text-gray-400 font-semibold">kWh</span></div>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50/80 rounded-2xl p-3 flex items-center space-x-2.5 border border-gray-100/50">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 text-blue-500 flex items-center justify-center shrink-0 shadow-inner">
+                                        <RotateCw size={16} />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-gray-400 mb-0.5 font-medium">累计换电</div>
+                                        <div className="font-black text-[14px] text-gray-900 tracking-tight">1,200 <span className="text-[10px] text-gray-400 font-semibold">kWh</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 修正后的趋势折线图区域 */}
+                        <div className="bg-white rounded-3xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/80">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="font-bold text-gray-900 text-[14px] tracking-wider">历史趋势</h3>
+                                <div className="bg-gray-100 p-1.5 rounded-xl flex space-x-1 text-[11px] font-bold">
+                                    <button onClick={() => handleTabChange('power')} className={`px-3 py-1.5 rounded-lg transition-all ${chartTab === 'power' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>充放电</button>
+                                    <button onClick={() => handleTabChange('soh')} className={`px-3 py-1.5 rounded-lg transition-all ${chartTab === 'soh' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>SOH</button>
+                                </div>
+                            </div>
+
+                            {/* 面积折线图容器 */}
+                            <div className="h-48 w-full relative flex flex-col mt-2 mb-4">
+                                {/* 背景刻度线 */}
+                                <div className="absolute inset-x-0 top-6 bottom-7 flex flex-col justify-between pointer-events-none">
+                                    {[1, 2, 3, 4, 5].map(i => <div key={i} className="w-full border-t border-gray-100 border-dashed h-0"></div>)}
+                                </div>
+
+                                {/* X轴 日期标签 */}
+                                <div className="absolute inset-x-0 bottom-0 h-7 flex justify-between items-center px-1">
+                                    {dates.map((d, i) => (
+                                        <div key={i} className="flex-1 flex justify-center">
+                                            {/* 增加 whitespace-nowrap 防止由于外层空间不够导致的换行挤压 */}
+                                            {i % 2 === 0 && <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">{d}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* 核心图表绘制区 */}
+                                <div className="absolute inset-x-1 top-6 bottom-7 flex">
+                                    
+                                    {/* 充放电 SVG 折线与渐变面 (增加 height: '100%' 修复部分浏览器高度溢出) */}
+                                    {chartTab === 'power' && (
+                                        <svg className="absolute inset-y-0 h-full overflow-visible z-0" style={{ left: '4.16%', right: '4.16%', width: '91.66%', height: '100%' }} preserveAspectRatio="none" viewBox="0 0 100 100">
+                                            {/* 放电面与线 (蓝色) */}
+                                            <polygon points={`0,100 ${dischargeData.map((h, i) => `${i * (100 / 11)},${100 - h}`).join(' ')} 100,100`} fill="url(#dischargeGradient)" opacity="0.35" />
+                                            <polyline points={dischargeData.map((h, i) => `${i * (100 / 11)},${100 - h}`).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+                                            
+                                            {/* 充电面与线 (绿色) */}
+                                            <polygon points={`0,100 ${chargeData.map((h, i) => `${i * (100 / 11)},${100 - h}`).join(' ')} 100,100`} fill="url(#chargeGradient)" opacity="0.35" />
+                                            <polyline points={chargeData.map((h, i) => `${i * (100 / 11)},${100 - h}`).join(' ')} fill="none" stroke="#00d084" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+
+                                            <defs>
+                                                <linearGradient id="chargeGradient" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor="#00d084" stopOpacity="0.6" />
+                                                    <stop offset="100%" stopColor="#00d084" stopOpacity="0" />
+                                                </linearGradient>
+                                                <linearGradient id="dischargeGradient" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
+                                                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                                                </linearGradient>
+                                            </defs>
+                                        </svg>
+                                    )}
+
+                                    {/* SOH SVG 折线与渐变面 (增加 height: '100%') */}
+                                    {chartTab === 'soh' && (
+                                        <svg className="absolute inset-y-0 h-full overflow-visible z-0" style={{ left: '4.16%', right: '4.16%', width: '91.66%', height: '100%' }} preserveAspectRatio="none" viewBox="0 0 100 100">
+                                            <polygon points={`0,100 ${sohData.map((h, i) => `${i * (100 / 11)},${100 - Math.max(10, (h - 70) * 3.33)}`).join(' ')} 100,100`} fill="url(#sohGradient)" opacity="0.3" />
+                                            <polyline points={sohData.map((h, i) => `${i * (100 / 11)},${100 - Math.max(10, (h - 70) * 3.33)}`).join(' ')} fill="none" stroke="#ef4444" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+                                            <defs>
+                                                <linearGradient id="sohGradient" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor="#ef4444" stopOpacity="0.5" />
+                                                    <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+                                                </linearGradient>
+                                            </defs>
+                                        </svg>
+                                    )}
+
+                                    {/* 交互触发图层与 Tooltip */}
+                                    {dates.map((_, i) => {
+                                        const ch = chargeData[i];
+                                        const dh = dischargeData[i];
+                                        const soh = sohData[i];
+                                        const sohH = Math.max(10, (soh - 70) * 3.33); // 视觉高度夸张系数
+
+                                        return (
+                                            <div key={i} onClick={() => setActiveDataIndex(i)} className="relative flex-1 flex justify-center h-full cursor-pointer group z-10">
+                                                {/* 悬停竖向高亮带 */}
+                                                <div className={`absolute inset-y-0 w-1/2 rounded-md transition-colors ${activeDataIndex === i ? 'bg-gray-100/60' : 'group-hover:bg-gray-50/60'}`}></div>
+
+                                                {/* 充放电 数据点缀与浮窗 */}
+                                                {chartTab === 'power' && (
+                                                    <>
+                                                        <div className={`absolute w-2 h-2 rounded-full border-[1.5px] border-white bg-primary-500 transition-all ${activeDataIndex === i ? 'scale-[1.8] shadow-md z-20' : 'opacity-0 group-hover:opacity-100 group-hover:scale-[1.5]'}`} style={{ bottom: `calc(${ch}% - 4px)` }}></div>
+                                                        <div className={`absolute w-2 h-2 rounded-full border-[1.5px] border-white bg-blue-500 transition-all ${activeDataIndex === i ? 'scale-[1.8] shadow-md z-20' : 'opacity-0 group-hover:opacity-100 group-hover:scale-[1.5]'}`} style={{ bottom: `calc(${dh}% - 4px)` }}></div>
+                                                        
+                                                        {activeDataIndex === i && (
+                                                            <div className="absolute bottom-full mb-3 flex flex-col gap-1.5 bg-gray-800/95 backdrop-blur-sm text-white text-[11px] font-bold px-3 py-2 rounded-lg shadow-xl z-30 whitespace-nowrap animate-in fade-in zoom-in-95 duration-200 border border-gray-700">
+                                                                <div className="text-[10px] text-gray-400 font-medium mb-0.5">{dates[i]} 统计数据</div>
+                                                                <div className="flex items-center"><span className="w-1.5 h-1.5 rounded-full bg-primary-500 mr-2"></span>充电: {ch} kWh</div>
+                                                                <div className="flex items-center"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2"></span>放电: {dh} kWh</div>
+                                                                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800/95 border-b border-r border-gray-700 rotate-45"></div>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+
+                                                {/* SOH 数据点缀与浮窗 */}
+                                                {chartTab === 'soh' && (
+                                                    <>
+                                                        <div className={`absolute w-2 h-2 rounded-full border-[1.5px] border-white bg-red-500 transition-all ${activeDataIndex === i ? 'scale-[1.8] shadow-md z-20' : 'opacity-0 group-hover:opacity-100 group-hover:scale-[1.5]'}`} style={{ bottom: `calc(${sohH}% - 4px)` }}></div>
+                                                        
+                                                        {activeDataIndex === i && (
+                                                            <div className="absolute bottom-full mb-3 bg-gray-800/95 backdrop-blur-sm text-white text-[11px] font-bold px-3 py-2 rounded-lg shadow-xl z-30 whitespace-nowrap animate-in fade-in zoom-in-95 duration-200 border border-gray-700">
+                                                                <div className="text-[10px] text-gray-400 font-medium mb-1">{dates[i]} 预测</div>
+                                                                <span className="text-red-400 mr-1">SOH:</span>{soh.toFixed(2)} %
+                                                                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-800/95 border-b border-r border-gray-700 rotate-45"></div>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                            
+                            {/* 图例 */}
+                            <div className="flex justify-center items-center space-x-4 text-[11px] text-gray-500 font-bold mt-2">
+                                {chartTab === 'power' ? (
+                                    <>
+                                        <div className="flex items-center"><div className="w-2.5 h-2.5 rounded-full mr-1.5 shadow-sm bg-primary-500"></div>日均充电 (kWh)</div>
+                                        <div className="flex items-center"><div className="w-2.5 h-2.5 rounded-full mr-1.5 shadow-sm bg-blue-500"></div>日均放电 (kWh)</div>
+                                    </>
+                                ) : (
+                                    <div className="flex items-center"><div className="w-2.5 h-2.5 rounded-full mr-2 shadow-sm bg-red-400"></div>电池健康度 (SOH) 衰减趋势 (%)</div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div onClick={() => showToast('正在调用地图 App...')} className="bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/80 overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform">
+                            <div className="p-4 border-b border-gray-50 flex justify-between items-center">
+                                <h3 className="font-bold text-gray-900 text-[14px] tracking-wider ml-1">当前位置</h3>
+                                <span className="text-[11px] text-primary-600 font-bold flex items-center bg-primary-50 px-2.5 py-1.5 rounded-full">导航前往 <Navigation size={12} className="ml-1"/></span>
+                            </div>
+                            <div className="relative h-36 w-full bg-gray-100 overflow-hidden">
+                                <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '12px 12px' }}></div>
+                                <div className="absolute top-1/4 left-[-10%] w-[120%] h-1.5 bg-white transform -rotate-12"></div>
+                                <div className="absolute top-0 left-1/3 w-2 h-[120%] bg-white transform rotate-12"></div>
+                                <div className="absolute bottom-1/4 left-[-10%] w-[120%] h-3 bg-white transform rotate-6"></div>
+                                
+                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                                    <div className="absolute w-14 h-14 bg-primary-400 rounded-full animate-ping opacity-25"></div>
+                                    <div className="w-9 h-9 bg-primary-500 text-white rounded-full flex items-center justify-center shadow-md border-[2.5px] border-white relative z-10">
+                                        <Car size={16} />
+                                    </div>
+                                </div>
+                                <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-md p-3 rounded-2xl text-[11px] text-gray-700 shadow-md border border-gray-100 flex items-center">
+                                    <MapPin size={14} className="text-gray-400 mr-2 shrink-0"/>
+                                    <span className="truncate font-semibold">{device.location}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* 档案卡片，移除多余的 mb-4 外边距 */}
+                        <div className="bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/80 overflow-hidden">
+                            <div className="border-b border-gray-50 flex justify-between items-center p-4">
+                                <span className="text-[12px] text-gray-500 font-medium ml-1">电池类型</span>
+                                <span className="text-[13px] text-gray-900 font-black mr-1">{device.type}</span>
+                            </div>
+                            <div className="border-b border-gray-50 flex justify-between items-center p-4">
+                                <span className="text-[12px] text-gray-500 font-medium ml-1">额定容量 (Ah)</span>
+                                <span className="text-[13px] text-gray-900 font-black mr-1">{device.capacityAh} Ah</span>
+                            </div>
+                            <div className="border-b border-gray-50 flex justify-between items-center p-4">
+                                <span className="text-[12px] text-gray-500 font-medium ml-1">总能量 (kWh)</span>
+                                <span className="text-[13px] text-gray-900 font-black mr-1">{device.energyKWh} kWh</span>
+                            </div>
+                            <div className="border-b border-gray-50 flex justify-between items-center p-4">
+                                <span className="text-[12px] text-gray-500 font-medium ml-1">电池包制造商</span>
+                                <span className="text-[13px] text-gray-900 font-black mr-1">宁德时代新能源科技</span>
+                            </div>
+                            <div className="border-b border-gray-50 flex justify-between items-center p-4">
+                                <span className="text-[12px] text-gray-500 font-medium ml-1">电池箱制造商</span>
+                                <span className="text-[13px] text-gray-900 font-black mr-1">时代一汽动力电池</span>
+                            </div>
+                            <div className="border-b border-gray-50 flex justify-between items-center p-4">
+                                <span className="text-[12px] text-gray-500 font-medium ml-1">电池箱出厂编号</span>
+                                <span className="text-[13px] text-gray-900 font-black mr-1">BX-{device.id.split('-')[1]}-01</span>
+                            </div>
+                            <div className="border-b border-gray-50 flex justify-between items-center p-4">
+                                <span className="text-[12px] text-gray-500 font-medium ml-1">BMS 固件版本</span>
+                                <span className="text-[13px] text-gray-900 font-black mr-1">v3.2.1-stable</span>
+                            </div>
+                            <div className="flex justify-between items-center p-4">
+                                <span className="text-[12px] text-gray-500 font-medium ml-1">首次激活时间</span>
+                                <span className="text-[13px] text-gray-900 font-black mr-1">2023-08-12 14:00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 视图组件：历史轨迹 ---
+        function TrajectoryView({ device, showToast }) {
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            
+            // 地图交互状态
+            const [zoom, setZoom] = useState(1.5); // 默认放大视角
+            const [pan, setPan] = useState({ x: 0, y: 0 });
+            const [isDragging, setIsDragging] = useState(false);
+            const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+            // 新增：自动跟随焦点状态
+            const [isFollowing, setIsFollowing] = useState(true);
+            const [focusPoint, setFocusPoint] = useState({ x: mockTrajectory[0].x, y: mockTrajectory[0].y });
+
+            // 监听轨迹索引变化，如果是跟随模式，则更新地图焦点
+            useEffect(() => {
+                if (isFollowing) {
+                    setFocusPoint({ x: mockTrajectory[currentIndex].x, y: mockTrajectory[currentIndex].y });
+                }
+            }, [currentIndex, isFollowing]);
+
+            const handlePointerDown = (e) => {
+                setIsDragging(true);
+                setIsFollowing(false); // 手动触碰地图拖拽时，打断自动跟随
+                setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+                e.currentTarget.setPointerCapture(e.pointerId);
+            };
+
+            const handlePointerMove = (e) => {
+                if (!isDragging) return;
+                setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+            };
+
+            const handlePointerUp = (e) => {
+                setIsDragging(false);
+                e.currentTarget.releasePointerCapture(e.pointerId);
+            };
+
+            // 点击重新定位准星
+            const handleLocate = () => {
+                setIsFollowing(true);
+                setPan({ x: 0, y: 0 }); // 清除手动偏移量
+                setZoom(1.5); // 恢复标准追踪焦距
+                showToast('已重新锁定车辆跟随');
+            };
+
+            useEffect(() => {
+                let timer;
+                if (isPlaying) {
+                    timer = setInterval(() => {
+                        setCurrentIndex(prev => {
+                            if (prev >= mockTrajectory.length - 1) {
+                                setIsPlaying(false);
+                                return prev;
+                            }
+                            return prev + 1;
+                        });
+                    }, 1200); // 每 1.2 秒播放一个轨迹点
+                }
+                return () => clearInterval(timer);
+            }, [isPlaying]);
+
+            const currentPoint = mockTrajectory[currentIndex];
+
+            return (
+                <div className="h-full w-full relative animate-in fade-in duration-300 bg-[#e5e7eb] overflow-hidden flex flex-col">
+                    {/* 地图交互区域 */}
+                    <div 
+                        className={`absolute inset-0 z-0 touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                        onPointerDown={handlePointerDown}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerCancel={handlePointerUp}
+                    >
+                        <div 
+                            className="absolute inset-0 w-full h-full"
+                            style={{
+                                transformOrigin: '0 0',
+                                transform: `translate(calc(50% - ${focusPoint.x}% * ${zoom} + ${pan.x}px), calc(50% - ${focusPoint.y}% * ${zoom} + ${pan.y}px)) scale(${zoom})`,
+                                transition: isDragging ? 'none' : 'transform 0.8s cubic-bezier(0.2, 0, 0, 1)'
+                            }}
+                        >
+                            {/* 地图底纹 */}
+                            <div className="absolute top-1/2 left-1/2 w-[300%] h-[300%] -translate-x-1/2 -translate-y-1/2 opacity-30" style={{ backgroundImage: 'radial-gradient(#94a3b8 2px, transparent 2px)', backgroundSize: '40px 40px' }}></div>
+                            <div className="absolute top-1/4 left-[-50%] w-[200%] h-6 bg-white transform -rotate-6 shadow-sm"></div>
+                            <div className="absolute top-[60%] left-[-50%] w-[200%] h-8 bg-white transform rotate-12 shadow-sm"></div>
+                            <div className="absolute top-0 left-[30%] w-6 h-[200%] bg-white transform rotate-[20deg] shadow-sm"></div>
+                            <div className="absolute top-[-20%] right-[30%] w-8 h-[200%] bg-white transform -rotate-[15deg] shadow-sm"></div>
+                            
+                            {/* SVG 轨迹线 */}
+                            <svg className="absolute inset-0 w-full h-full overflow-visible z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                {/* 完整轨迹底线 (虚线) */}
+                                <polyline 
+                                    points={mockTrajectory.map(p => `${p.x},${p.y}`).join(' ')} 
+                                    fill="none" 
+                                    stroke="#94a3b8" 
+                                    strokeWidth="1.5" 
+                                    strokeDasharray="2 2" 
+                                    vectorEffect="non-scaling-stroke" 
+                                />
+                                {/* 已行驶轨迹线 (高亮绿) */}
+                                <polyline 
+                                    points={mockTrajectory.slice(0, currentIndex + 1).map(p => `${p.x},${p.y}`).join(' ')} 
+                                    fill="none" 
+                                    stroke="#00d084" 
+                                    strokeWidth="3" 
+                                    vectorEffect="non-scaling-stroke" 
+                                    className="drop-shadow-md transition-all duration-1000 ease-linear"
+                                />
+                            </svg>
+
+                            {/* 起点和终点标记 */}
+                            <div className="absolute w-7 h-7 bg-gray-800 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-[2px] border-white transform -translate-x-1/2 -translate-y-1/2" style={{ top: `${mockTrajectory[0].y}%`, left: `${mockTrajectory[0].x}%` }}>起</div>
+                            <div className="absolute w-7 h-7 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-[2px] border-white transform -translate-x-1/2 -translate-y-1/2" style={{ top: `${mockTrajectory[mockTrajectory.length-1].y}%`, left: `${mockTrajectory[mockTrajectory.length-1].x}%` }}>终</div>
+
+                            {/* 移动的车辆标记 */}
+                            <div className="absolute w-10 h-10 bg-primary-500 text-white rounded-full flex items-center justify-center shadow-lg border-[3px] border-white transform -translate-x-1/2 -translate-y-1/2 transition-all duration-1000 ease-linear z-10" style={{ top: `${currentPoint.y}%`, left: `${currentPoint.x}%` }}>
+                                <Car size={16} />
+                                {/* 波纹光圈动效 */}
+                                {isPlaying && <div className="absolute inset-0 rounded-full border-[3px] border-primary-500 animate-ping opacity-50"></div>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 顶部设备信息悬浮窗 */}
+                    <div className="absolute top-4 left-4 right-4 z-10 bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-white/50 flex items-center pointer-events-none">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 mr-3 shadow-inner ${device.status === 'warning' ? 'bg-red-500' : device.plate ? 'bg-primary-500' : 'bg-gray-700'}`}>
+                            {device.plate ? <Car size={14} /> : <Package size={14} />}
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-900 text-[13px]">{device.plate ? device.plate : `SN: ${device.id}`}</h4>
+                            <p className="text-[10px] text-gray-500 font-medium">历史轨迹回放</p>
+                        </div>
+                    </div>
+
+                    {/* 右侧悬浮操作区（上移位置，避免被底部控制面板遮挡） */}
+                    <div className="absolute right-4 bottom-[200px] z-20 flex flex-col space-y-3 pointer-events-auto transition-all duration-300">
+                        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg shadow-gray-200/50 border border-white/50 p-1 flex flex-col items-center">
+                            <button onClick={() => setZoom(z => Math.min(z + 0.4, 3))} className="w-10 h-10 flex justify-center items-center text-gray-700 hover:bg-gray-100 active:bg-gray-200 rounded-[12px] transition-colors">
+                                <Plus size={18} />
+                            </button>
+                            <div className="w-5 h-px bg-gray-200 my-0.5"></div>
+                            <button onClick={() => setZoom(z => Math.max(z - 0.4, 0.5))} className="w-10 h-10 flex justify-center items-center text-gray-700 hover:bg-gray-100 active:bg-gray-200 rounded-[12px] transition-colors">
+                                <Minus size={18} />
+                            </button>
+                        </div>
+                        <button onClick={handleLocate} className={`w-12 h-12 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg shadow-gray-200/50 border border-white/50 flex justify-center items-center transition-all active:scale-95 ${isFollowing ? 'text-primary-600' : 'text-gray-400'}`}>
+                            <Crosshair size={20} />
+                        </button>
+                    </div>
+
+                    {/* 底部播放控制面板 (极致压缩版) */}
+                    <div className="absolute bottom-6 left-4 right-4 z-20 bg-white/95 backdrop-blur-xl rounded-[1.5rem] p-4 shadow-2xl border border-gray-100 animate-in slide-in-from-bottom-8">
+                        
+                        {/* 上部：核心信息舱 (时间 + 紧凑型数据) */}
+                        <div className="flex justify-between items-end mb-3 px-1">
+                            <div className="flex flex-col">
+                                <span className="text-[9px] text-gray-400 mb-0.5 font-bold tracking-widest uppercase">时间</span>
+                                <span className="font-black text-[22px] text-gray-900 tracking-tight leading-none">{currentPoint.time}</span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3 bg-gray-50/80 px-3 py-1.5 rounded-xl border border-gray-100/50">
+                                <div className="flex flex-col items-center">
+                                    <span className="text-[9px] text-gray-400 font-medium mb-0.5">瞬时速度</span>
+                                    <span className="font-black text-[13px] text-gray-800 leading-none">{currentPoint.speed}<span className="text-[8px] font-semibold ml-0.5 text-gray-500">km/h</span></span>
+                                </div>
+                                <div className="w-px h-5 bg-gray-200"></div>
+                                <div className="flex flex-col items-center">
+                                    <span className="text-[9px] text-gray-400 font-medium mb-0.5">SOC</span>
+                                    <span className="font-black text-[13px] text-gray-800 leading-none flex items-center">
+                                        {currentPoint.power}<span className="text-[8px] font-semibold ml-0.5 text-gray-500">%</span>
+                                        {currentIndex > 0 && mockTrajectory[currentIndex-1].power > currentPoint.power && <Icon name="trend-down" size={10} className="text-blue-500 ml-0.5"/>}
+                                        {currentIndex > 0 && mockTrajectory[currentIndex-1].power < currentPoint.power && <Icon name="trend-up" size={10} className="text-primary-500 ml-0.5"/>}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 中部：细条进度条 */}
+                        <div className="flex items-center space-x-2.5 mb-3 px-1">
+                            <span className="text-[9px] text-gray-400 font-bold">{mockTrajectory[0].time}</span>
+                            <input 
+                                type="range" 
+                                min="0" 
+                                max={mockTrajectory.length - 1} 
+                                value={currentIndex}
+                                onChange={(e) => { 
+                                    setCurrentIndex(parseInt(e.target.value)); 
+                                    setIsPlaying(false); 
+                                    setIsFollowing(true);
+                                    setPan({ x: 0, y: 0 });
+                                }}
+                                className="flex-1 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-primary-500 shadow-inner"
+                            />
+                            <span className="text-[9px] text-gray-400 font-bold">{mockTrajectory[mockTrajectory.length - 1].time}</span>
+                        </div>
+
+                        {/* 下部：控制按钮与状态标签并行排布 */}
+                        <div className="flex justify-between items-center px-1">
+                            <div className={`px-2.5 py-1.5 rounded-[10px] text-[10px] font-bold flex items-center ${currentPoint.speed === 0 ? 'bg-gray-100 text-gray-600' : 'bg-primary-50 text-primary-600'}`}>
+                                {currentPoint.speed === 0 ? <FlagCheckered size={12} className="mr-1" /> : <Activity size={12} className="mr-1 animate-pulse" />}
+                                {currentPoint.status}
+                            </div>
+
+                            <div className="flex items-center space-x-5">
+                                <button 
+                                    onClick={() => {
+                                        setCurrentIndex(Math.max(0, currentIndex - 1));
+                                        setIsFollowing(true);
+                                        setPan({ x: 0, y: 0 });
+                                    }}
+                                    className="text-gray-400 active:scale-90 transition-all hover:text-gray-600"
+                                >
+                                    <Rewind size={18} />
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        if (currentIndex >= mockTrajectory.length - 1) setCurrentIndex(0);
+                                        setIsPlaying(!isPlaying);
+                                        setIsFollowing(true);
+                                        setPan({ x: 0, y: 0 });
+                                    }}
+                                    className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white shadow-lg shadow-primary-500/30 active:scale-95 transition-transform"
+                                >
+                                    {isPlaying ? <Pause size={22} /> : <Play size={22} className="ml-1" />}
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        setCurrentIndex(Math.min(mockTrajectory.length - 1, currentIndex + 1));
+                                        setIsFollowing(true);
+                                        setPan({ x: 0, y: 0 });
+                                    }}
+                                    className="text-gray-400 active:scale-90 transition-all hover:text-gray-600"
+                                >
+                                    <FastForward size={18} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 视图组件：个人中心 ---
+        function ProfileView({ onLogout, showToast }) {
+            return (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+                    <div className="bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 pt-8 pb-12 px-6 text-white rounded-b-[2rem] shadow-sm relative overflow-hidden">
+                        <div className="absolute -right-10 -top-10 opacity-20 w-40 h-40 bg-white rounded-full blur-3xl"></div>
+                        <div className="absolute right-0 bottom-0 opacity-10">
+                            <Car size={100} weight="fill" className="transform translate-x-1/4 translate-y-1/4" />
+                        </div>
+
+                        <div className="flex justify-between items-center relative z-10">
+                            <div className="flex items-center space-x-4">
+                                <div className="w-16 h-16 rounded-full bg-white border-[2.5px] border-white/80 overflow-hidden shrink-0 shadow-md">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Jack&backgroundColor=e5e7eb" alt="avatar" className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                    <h2 className="text-[20px] font-black tracking-tight flex items-center">
+                                        李车队长
+                                        <IconFill name="seal-check" className="ml-1 text-blue-100" size={18} />
+                                    </h2>
+                                    <p className="text-[12px] text-primary-50 mt-1 font-medium tracking-wide">顺丰速运 - 深圳南山片区</p>
+                                </div>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30 active:scale-90 transition-transform cursor-pointer shadow-sm" onClick={() => showToast('我的名片码')}>
+                                <Icon name="qr-code" size={16} className="text-white" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="px-4 -mt-6 relative z-20">
+                        <div className="bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-gray-100 p-5 flex justify-around text-center">
+                            <div onClick={() => showToast('暂无权限访问车队列表')} className="active:scale-95 transition-transform cursor-pointer w-full">
+                                <div className="text-[24px] font-black text-gray-900 tracking-tight">128</div>
+                                <div className="text-[11px] text-gray-500 mt-1 font-semibold">管理车辆</div>
+                            </div>
+                            <div className="w-px bg-gray-100 my-2"></div>
+                            <div onClick={() => showToast('正在拉取告警工单...')} className="active:scale-95 transition-transform cursor-pointer w-full">
+                                <div className="text-[24px] font-black text-gray-900 tracking-tight">45</div>
+                                <div className="text-[11px] text-gray-500 mt-1 font-semibold">告警记录</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="px-4 mt-5">
+                        <div className="bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-gray-100/80 overflow-hidden">
+                            {[
+                                { icon: Car, label: '我的车辆资产' },
+                                { icon: ShieldCheck, label: '操作与诊断权限' },
+                                { icon: Activity, label: '车队能耗报告' },
+                                { icon: Bell, label: '消息通知设置' },
+                                { icon: Settings, label: '系统通用设置' },
+                            ].map((item, i) => (
+                                <div key={i} onClick={() => showToast(`进入${item.label}`)} className={`flex justify-between items-center active:bg-gray-50 cursor-pointer transition-colors p-4 ${i !== 4 ? 'border-b border-gray-50' : ''}`}>
+                                    <div className="flex items-center text-[14px] text-gray-800 font-bold tracking-wide">
+                                        <div className="w-9 h-9 rounded-[10px] bg-primary-50 text-primary-600 flex items-center justify-center mr-3.5">
+                                            <item.icon size={18} />
+                                        </div>
+                                        {item.label}
+                                    </div>
+                                    <ChevronRight size={18} className="text-gray-300" />
+                                </div>
+                            ))}
+                        </div>
+
+                        <button onClick={() => { showToast('正在安全退出...'); setTimeout(onLogout, 800); }} className="w-full bg-white border border-red-100 text-red-500 rounded-2xl py-4 mt-6 font-black text-[14px] tracking-wide shadow-sm active:bg-red-50 active:scale-[0.98] transition-all">
+                            退出当前账号
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 视图组件：登录页 ---
+        function LoginView({ onLogin, showToast }) {
+            const [phone, setPhone] = useState('');
+            const [password, setPassword] = useState('');
+            const [agreed, setAgreed] = useState(false);
+
+            const handleLoginSubmit = () => {
+                if (!phone || !password) {
+                    showToast('请输入手机号和密码');
+                    return;
+                }
+                if (!agreed) {
+                    showToast('请先阅读并勾选同意用户协议');
+                    return;
+                }
+                showToast('登录成功，欢迎回来');
+                setTimeout(onLogin, 800);
+            };
+
+            return (
+                <div className="flex flex-col min-h-full bg-white relative overflow-hidden animate-in fade-in duration-500">
+                    {/* 高级科技感轻量渐变背景插画 */}
+                    <div className="absolute top-0 left-0 w-full h-[450px] pointer-events-none z-0 overflow-hidden">
+                        {/* 渐变底色 */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/80 via-white to-white"></div>
+                        
+                        {/* 柔和光晕特效 */}
+                        <div className="absolute -top-10 -right-20 w-[350px] h-[350px] bg-primary-400/15 rounded-full blur-[50px] animate-pulse" style={{ animationDuration: '4s' }}></div>
+                        <div className="absolute top-32 -left-20 w-[250px] h-[250px] bg-blue-400/10 rounded-full blur-[40px] animate-pulse" style={{ animationDuration: '6s' }}></div>
+                        
+                        {/* 极细的网格纹理 */}
+                        <div className="absolute inset-0 opacity-[0.4]" style={{ backgroundImage: 'linear-gradient(rgba(0, 208, 132, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 208, 132, 0.08) 1px, transparent 1px)', backgroundSize: '24px 24px', backgroundPosition: 'center top' }}></div>
+                        
+                        {/* 矢量抽象科技几何图形 */}
+                        <svg className="absolute inset-0 w-full h-full opacity-[0.8]" viewBox="0 0 400 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            {/* 右上角同心圆波纹纹理 */}
+                            <circle cx="360" cy="80" r="60" stroke="rgba(0, 208, 132, 0.15)" strokeWidth="1" fill="none" strokeDasharray="4 6" />
+                            <circle cx="360" cy="80" r="100" stroke="rgba(0, 208, 132, 0.08)" strokeWidth="1" fill="none" />
+                            <circle cx="360" cy="80" r="150" stroke="rgba(0, 208, 132, 0.04)" strokeWidth="1" fill="none" />
+                            
+                            {/* 科技感数据折线穿插 */}
+                            <path d="M-20 180 L 120 220 L 260 160 L 450 240" stroke="url(#techLinePrimary)" strokeWidth="1.5" fill="none" />
+                            <path d="M-20 200 L 130 240 L 240 180 L 450 260" stroke="url(#techLineSecondary)" strokeWidth="1" fill="none" opacity="0.6" />
+                            
+                            {/* 折线上的发光节点 */}
+                            <circle cx="120" cy="220" r="3" fill="#00d084" opacity="0.6" />
+                            <circle cx="120" cy="220" r="8" stroke="#00d084" strokeWidth="1" fill="none" opacity="0.3" />
+                            <circle cx="260" cy="160" r="4" fill="#00d084" opacity="0.8" />
+                            <circle cx="260" cy="160" r="10" stroke="#00d084" strokeWidth="1" fill="none" opacity="0.4" />
+
+                            <defs>
+                                <linearGradient id="techLinePrimary" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#00d084" stopOpacity="0" />
+                                    <stop offset="50%" stopColor="#00d084" stopOpacity="0.8" />
+                                    <stop offset="100%" stopColor="#00d084" stopOpacity="0" />
+                                </linearGradient>
+                                <linearGradient id="techLineSecondary" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0" />
+                                    <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.6" />
+                                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        
+                        {/* 底部平滑渐变融入纯白内容区 */}
+                        <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+                    </div>
+
+                    <div className="flex-1 px-8 pt-[140px] relative z-10 flex flex-col">
+                        <div className="mb-10 animate-in slide-in-from-bottom-4 duration-500">
+                            <h1 className="text-[32px] font-black text-gray-900 tracking-tight mb-2">欢迎登录</h1>
+                            <p className="text-[14px] text-gray-500 font-medium tracking-wide">传烽智能电池资产监控平台</p>
+                        </div>
+
+                        <div className="space-y-4 animate-in slide-in-from-bottom-8 duration-700">
+                            <div className="bg-gray-50/80 rounded-2xl p-1 border border-gray-100 focus-within:border-primary-300 focus-within:ring-4 focus-within:ring-primary-50 transition-all">
+                                <div className="flex items-center px-4 py-3.5">
+                                    <User size={20} className="text-gray-400 mr-3 shrink-0" />
+                                    <input type="tel" placeholder="请输入手机号" value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-transparent focus:outline-none text-[15px] font-bold text-gray-900 placeholder:text-gray-400 placeholder:font-medium" />
+                                </div>
+                            </div>
+                            <div className="bg-gray-50/80 rounded-2xl p-1 border border-gray-100 focus-within:border-primary-300 focus-within:ring-4 focus-within:ring-primary-50 transition-all">
+                                <div className="flex items-center px-4 py-3.5">
+                                    <LockKey size={20} className="text-gray-400 mr-3 shrink-0" />
+                                    <input type="password" placeholder="请输入密码" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-transparent focus:outline-none text-[15px] font-bold text-gray-900 placeholder:text-gray-400 placeholder:font-medium" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center mt-6 mb-8 animate-in slide-in-from-bottom-8 duration-700 delay-100">
+                            <div onClick={() => setAgreed(!agreed)} className="flex items-center justify-center cursor-pointer mr-2 p-1 active:scale-90 transition-transform">
+                                {agreed ? <CheckCircle size={18} className="text-primary-500" /> : <Circle size={18} className="text-gray-300" />}
+                            </div>
+                            <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                                我已阅读并同意 <span className="text-primary-600 font-bold cursor-pointer hover:underline" onClick={() => showToast('查看服务协议')}>《服务协议》</span> 与 <span className="text-primary-600 font-bold cursor-pointer hover:underline" onClick={() => showToast('查看隐私政策')}>《隐私政策》</span>
+                            </p>
+                        </div>
+
+                        <button onClick={handleLoginSubmit} className="w-full bg-primary-500 text-white rounded-2xl py-4 text-[15px] font-black shadow-lg shadow-primary-500/30 active:scale-[0.98] transition-all animate-in slide-in-from-bottom-8 duration-700 delay-150">
+                            安全登录
+                        </button>
+
+                        <div className="mt-12 flex items-center justify-center space-x-4 animate-in fade-in duration-1000 delay-300">
+                            <div className="h-px bg-gray-200 flex-1"></div>
+                            <span className="text-[11px] text-gray-400 font-bold tracking-wider">其他方式登录</span>
+                            <div className="h-px bg-gray-200 flex-1"></div>
+                        </div>
+
+                        <div className="mt-6 flex justify-center animate-in fade-in zoom-in duration-1000 delay-300">
+                            <button onClick={() => { setAgreed(true); showToast('正在拉取微信授权...'); setTimeout(handleLoginSubmit, 1200); }} className="w-14 h-14 bg-[#07C160]/10 border border-[#07C160]/20 rounded-full flex items-center justify-center text-[#07C160] active:scale-90 transition-all shadow-sm">
+                                <WechatLogo size={28} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
