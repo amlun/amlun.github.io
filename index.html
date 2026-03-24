@@ -1,25 +1,326 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Directory Navigation</title>
+    <title>Amlun | 个人主页</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- 自定义 Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6', // blue-500
+                        secondary: '#10b981', // emerald-500
+                        dark: '#0f172a', // slate-900
+                        card: '#1e293b', // slate-800
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- 引入 Google 字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-        h1 { text-align: center; }
-        ul { list-style-type: none; padding: 0; }
-        li { margin: 10px 0; }
-        a { display: block; padding: 10px; text-decoration: none; background-color: #007BFF; color: #fff; border-radius: 5px; text-align: center; }
-        a:hover { background-color: #0056b3; }
+        body { font-family: 'Inter', sans-serif; }
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-<body>
-    <h1>Navigate to Subpages</h1>
-    <ul>
-        <li><a href="/demo/ai-model-compass/index.html">AI Model Compass</a></li>
-        <li><a href="/demo/battery-mini-demo/index.html">Battery Mini Demo</a></li>
-        <li><a href="/demo/battery-website/index.html">Battery Website</a></li>
-        <li><a href="/mba/entrepreneurship/index.html">MBA/Entrepreneurship</a></li>
-    </ul>
+<body class="bg-dark text-slate-300 antialiased selection:bg-primary selection:text-white flex flex-col min-h-screen">
+
+    <!-- 导航栏 -->
+    <header class="fixed w-full top-0 z-50 bg-dark/80 backdrop-blur-md border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0 font-bold text-xl tracking-wider text-white">
+                    <a href="#home">AMLUN<span class="text-primary">.</span></a>
+                </div>
+                <!-- 桌面端菜单 -->
+                <nav class="hidden md:block">
+                    <ul class="flex space-x-8 text-sm font-medium">
+                        <li><a href="#home" class="hover:text-primary transition-colors">首页</a></li>
+                        <li><a href="#about" class="hover:text-primary transition-colors">关于</a></li>
+                        <li><a href="#demos" class="hover:text-primary transition-colors">示例</a></li>
+                        <li><a href="#projects" class="hover:text-primary transition-colors">项目</a></li>
+                        <li><a href="#contact" class="hover:text-primary transition-colors">联系我</a></li>
+                    </ul>
+                </nav>
+                <!-- 移动端菜单按钮 (仅UI展示，功能可通过JS扩展) -->
+                <div class="md:hidden">
+                    <button class="text-slate-300 hover:text-white focus:outline-none">
+                        <i class="ph ph-list text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 首页 Hero 区域 -->
+    <section id="home" class="flex-grow flex items-center justify-center min-h-screen pt-16">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-primary font-semibold tracking-wide uppercase text-sm mb-4">Welcome to my space</h2>
+            <h1 class="text-4xl sm:text-6xl font-bold text-white mb-6">
+                你好，我是 <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">Amlun</span>
+            </h1>
+            <p class="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
+                我是一名充满热情的开发者，喜欢构建有趣、实用且美观的数字产品。在这里分享我的代码、项目与思考。
+            </p>
+            <div class="flex justify-center gap-4">
+                <a href="#projects" class="px-6 py-3 rounded-full bg-primary text-white font-medium hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30">
+                    查看项目
+                </a>
+                <a href="#contact" class="px-6 py-3 rounded-full border border-slate-600 text-white font-medium hover:bg-slate-800 transition-all">
+                    联系我
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 关于我 & 技能区域 -->
+    <section id="about" class="py-20 bg-slate-900/50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-white mb-6">关于我</h2>
+                    <p class="text-slate-400 mb-4 leading-relaxed">
+                        我在编程和技术领域不断探索。我致力于编写整洁、高效的代码，并对学习新技术抱有极大的好奇心。
+                    </p>
+                    <p class="text-slate-400 mb-6 leading-relaxed">
+                        除了写代码，我也喜欢关注开源社区的发展。建立这个博客/主页是为了记录我的技术积累，希望能和更多志同道合的人交流。
+                    </p>
+                    <a href="https://github.com/amlun" target="_blank" class="inline-flex items-center text-primary hover:text-blue-400 transition-colors">
+                        <span>访问我的 GitHub</span>
+                        <i class="ph ph-arrow-right ml-2 text-base"></i>
+                    </a>
+                </div>
+                
+                <!-- 技能标签 -->
+                <div class="bg-card rounded-2xl p-8 border border-slate-700/50 shadow-xl">
+                    <h3 class="text-xl font-semibold text-white mb-6">技术栈与技能</h3>
+                    <div class="flex flex-wrap gap-3">
+                        <!-- 可以根据你的实际技能修改这些标签 -->
+                        <span class="px-4 py-2 bg-slate-700/50 text-slate-200 rounded-lg text-sm font-medium border border-slate-600/50">HTML & CSS</span>
+                        <span class="px-4 py-2 bg-slate-700/50 text-slate-200 rounded-lg text-sm font-medium border border-slate-600/50">JavaScript / TypeScript</span>
+                        <span class="px-4 py-2 bg-slate-700/50 text-slate-200 rounded-lg text-sm font-medium border border-slate-600/50">React</span>
+                        <span class="px-4 py-2 bg-slate-700/50 text-slate-200 rounded-lg text-sm font-medium border border-slate-600/50">Golang</span>
+                        <span class="px-4 py-2 bg-slate-700/50 text-slate-200 rounded-lg text-sm font-medium border border-slate-600/50">Node.js</span>
+                        <span class="px-4 py-2 bg-slate-700/50 text-slate-200 rounded-lg text-sm font-medium border border-slate-600/50">Git & GitHub</span>
+                        <span class="px-4 py-2 bg-slate-700/50 text-slate-200 rounded-lg text-sm font-medium border border-slate-600/50">Tailwind CSS</span>
+                        <span class="px-4 py-2 bg-slate-700/50 text-slate-200 rounded-lg text-sm font-medium border border-slate-600/50">Linux</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 在线示例 (Demos) 区域 -->
+    <section id="demos" class="py-20 bg-dark">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-white mb-2">在线示例</h2>
+                    <p class="text-slate-400">位于 /demo 目录下的一些前端实验、小游戏和交互效果</p>
+                </div>
+                <a href="https://github.com/amlun/amlun.github.io/tree/main/demo" target="_blank" class="inline-flex items-center text-sm text-primary hover:text-blue-400 transition-colors">
+                    <span>查看 /demo 源码目录</span>
+                    <i class="ph ph-arrow-right ml-1 text-base"></i>
+                </a>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Demo 卡片 1 -->
+                <div class="bg-card rounded-xl p-5 border border-slate-700/50 hover:border-primary/50 transition-all duration-300 hover:-translate-y-1">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center mb-4">
+                        <i class="ph ph-magic-wand text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">示例一：动效按钮</h3>
+                    <p class="text-slate-400 text-sm mb-5 line-clamp-2">一个充满创意的 CSS 和 JS 交互按钮效果。</p>
+                    <div class="flex gap-2">
+                        <a href="./demo/demo1/index.html" target="_blank" class="flex-1 text-center py-2 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium rounded transition-colors border border-primary/20">
+                            在线预览
+                        </a>
+                        <a href="https://github.com/amlun/amlun.github.io/tree/main/demo/demo1" target="_blank" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-lg rounded transition-colors border border-slate-700 flex items-center justify-center" title="查看源码">
+                            <i class="ph ph-github-logo"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Demo 卡片 2 -->
+                <div class="bg-card rounded-xl p-5 border border-slate-700/50 hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-4">
+                        <i class="ph ph-sort-ascending text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">示例二：算法演示</h3>
+                    <p class="text-slate-400 text-sm mb-5 line-clamp-2">可视化的排序算法演示，例如快速排序和冒泡排序的过程。</p>
+                    <div class="flex gap-2">
+                        <a href="./demo/demo2/index.html" target="_blank" class="flex-1 text-center py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 text-xs font-medium rounded transition-colors border border-emerald-500/20">
+                            在线预览
+                        </a>
+                        <a href="https://github.com/amlun/amlun.github.io/tree/main/demo/demo2" target="_blank" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-lg rounded transition-colors border border-slate-700 flex items-center justify-center" title="查看源码">
+                            <i class="ph ph-github-logo"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Demo 卡片 3 -->
+                <div class="bg-card rounded-xl p-5 border border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1">
+                    <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center mb-4">
+                        <i class="ph ph-game-controller text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">示例三：小游戏</h3>
+                    <p class="text-slate-400 text-sm mb-5 line-clamp-2">使用 Canvas 编写的经典网页小游戏（如贪吃蛇或俄罗斯方块）。</p>
+                    <div class="flex gap-2">
+                        <a href="./demo/demo3/index.html" target="_blank" class="flex-1 text-center py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs font-medium rounded transition-colors border border-purple-500/20">
+                            在线预览
+                        </a>
+                        <a href="https://github.com/amlun/amlun.github.io/tree/main/demo/demo3" target="_blank" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-lg rounded transition-colors border border-slate-700 flex items-center justify-center" title="查看源码">
+                            <i class="ph ph-github-logo"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Demo 卡片 4 -->
+                <div class="bg-card rounded-xl p-5 border border-slate-700/50 hover:border-amber-500/50 transition-all duration-300 hover:-translate-y-1">
+                    <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center mb-4">
+                        <i class="ph ph-toolbox text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">示例四：实用工具</h3>
+                    <p class="text-slate-400 text-sm mb-5 line-clamp-2">日常开发中可能会用到的小工具，如颜色转换器或正则表达式验证。</p>
+                    <div class="flex gap-2">
+                        <a href="./demo/demo4/index.html" target="_blank" class="flex-1 text-center py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-xs font-medium rounded transition-colors border border-amber-500/20">
+                            在线预览
+                        </a>
+                        <a href="https://github.com/amlun/amlun.github.io/tree/main/demo/demo4" target="_blank" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-lg rounded transition-colors border border-slate-700 flex items-center justify-center" title="查看源码">
+                            <i class="ph ph-github-logo"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 项目展示区域 -->
+    <section id="projects" class="py-20 bg-slate-900/50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-white mb-2 text-center">开源项目</h2>
+            <p class="text-slate-400 text-center mb-12">一些我参与或创建的有趣项目</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 项目卡片 1 -->
+                <div class="bg-card rounded-xl overflow-hidden border border-slate-700/50 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300 group">
+                    <div class="h-48 bg-slate-700 relative overflow-hidden flex items-center justify-center">
+                        <i class="ph ph-terminal-window text-[4rem] text-slate-500 group-hover:scale-110 transition-transform duration-300"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-2">小红书自动发文 Agent</h3>
+                        <p class="text-slate-400 text-sm mb-4 line-clamp-2">这是一个基于 React 和 Tailwind CSS 构建的自动发文 Agent 项目。它可以帮助用户自动在小红书上发布内容，无需手动操作。</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex space-x-2 text-xs text-primary">
+                                <span>#React</span>
+                                <span>#Node.js</span>
+                                <span>#TypeScript</span>
+                                <span>#Tailwind</span>
+                            </div>
+                            <a href="https://github.com/jingjiansoft/xiaohongshu-agent" target="_blank" class="text-slate-300 hover:text-white transition-colors">
+                                <i class="ph ph-github-logo text-2xl"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目卡片 2 -->
+                <div class="bg-card rounded-xl overflow-hidden border border-slate-700/50 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300 group">
+                    <div class="h-48 bg-slate-700 relative overflow-hidden flex items-center justify-center">
+                        <i class="ph ph-wrench text-[4rem] text-slate-500 group-hover:scale-110 transition-transform duration-300"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-2">A Go Dispatcher library</h3>
+                        <p class="text-slate-400 text-sm mb-4 line-clamp-2">这是一个基于 Go 语言的任务分发库，用于将任务分发到多个 worker 进程中并行执行。</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex space-x-2 text-xs text-secondary">
+                                <span>#Python</span>
+                                <span>#Tools</span>
+                            </div>
+                            <a href="https://github.com/amlun/linda" target="_blank" class="text-slate-300 hover:text-white transition-colors">
+                                <i class="ph ph-github-logo text-2xl"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目卡片 3 -->
+                <div class="bg-card rounded-xl overflow-hidden border border-slate-700/50 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300 group">
+                    <div class="h-48 bg-slate-700 relative overflow-hidden flex items-center justify-center">
+                        <i class="ph ph-flask text-[4rem] text-slate-500 group-hover:scale-110 transition-transform duration-300"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-2">个人实验室</h3>
+                        <p class="text-slate-400 text-sm mb-4 line-clamp-2">平时折腾各种新技术的游乐场，包含了一些前端特效的实验和算法实践记录。</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex space-x-2 text-xs text-purple-400">
+                                <span>#Lab</span>
+                                <span>#Algorithm</span>
+                            </div>
+                            <a href="https://github.com/amlun/lab" target="_blank" class="text-slate-300 hover:text-white transition-colors">
+                                <i class="ph ph-github-logo text-2xl"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-12 text-center">
+                <a href="https://github.com/amlun?tab=repositories" target="_blank" class="inline-flex items-center space-x-2 text-slate-300 hover:text-white transition-colors">
+                    <span>在 GitHub 上查看更多</span>
+                    <i class="ph ph-arrow-right text-base"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部区域 & 联系方式 -->
+    <footer id="contact" class="bg-card border-t border-slate-800 mt-auto">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white mb-2">保持联系</h2>
+                    <p class="text-slate-400 text-sm">如果你有好的想法、合作机会或者只是想打个招呼，欢迎联系我！</p>
+                </div>
+                
+                <!-- 社交链接 -->
+                <div class="flex space-x-6">
+                    <a href="https://github.com/amlun" target="_blank" class="text-slate-400 hover:text-white transition-transform hover:scale-110">
+                        <span class="sr-only">GitHub</span>
+                        <i class="ph ph-github-logo text-2xl"></i>
+                    </a>
+                    <a href="mailto:allan@amlun.com" class="text-slate-400 hover:text-white transition-transform hover:scale-110">
+                        <span class="sr-only">Email</span>
+                        <i class="ph ph-envelope-simple text-2xl"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mt-8 pt-8 border-t border-slate-700/50 text-center flex flex-col items-center">
+                <p class="text-slate-500 text-sm mb-2">
+                    &copy; 2026 Amlun. All rights reserved.
+                </p>
+                <p class="text-slate-600 text-xs">
+                    Built with <span class="text-red-500">♥</span> & Tailwind CSS. Hosted on GitHub Pages.
+                </p>
+            </div>
+        </div>
+    </footer>
+
 </body>
 </html>
