@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>豪思生物：创新创业管理案例分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* CSS Reset & Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; }
+        
+        /* Required Chart Container Styling */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+
+        /* Interactive Element Styles */
+        .tab-btn {
+            color: #475569; /* 默认灰字 */
+            transition: all 0.3s ease;
+        }
+        .tab-btn:not(.active):hover {
+            background-color: #f1f5f9; /* 浅灰底 */
+            color: #2563eb; /* 悬停变蓝字 */
+        }
+        .tab-btn.active {
+            background-color: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .tab-btn.active:hover {
+            background-color: #1d4ed8; /* 选中状态下悬停变成更深的蓝色，防止白字看不清 */
+        }
+
+        .resource-card {
+            transition: all 0.3s ease;
+        }
+        .resource-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Smooth Scroll */
+        html { scroll-behavior: smooth; }
+    </style>
+
+    <!-- Chosen Palette: Clean Corporate Tech (Slate/Blue/White) - #f8fafc background, #1e293b text, #2563eb accents -->
+    <!-- Application Structure Plan: The SPA uses a structured, narrative-driven dashboard layout. It begins with the macro opportunity (Market Gap), transitions into the micro execution (PMF & Challenges), expands into the strategic growth (Business Model Evolution), and concludes with the foundational support (Resource Integration). This linear yet explorable structure maps directly to the MBA course concepts (Opportunity, Dilemmas, Business Model) while keeping the user engaged through interactive charts, dynamic tabs, and hover-state matrices. -->
+    <!-- Visualization & Content Choices: 1. Market Penetration (Goal: Compare) -> Chart.js Doughnut Chart -> Hover tooltips -> Highlights the massive "Market Gap" (1% vs US widespread). 2. PMF/Dilemmas (Goal: Inform/Organize) -> Interactive Clickable Cards (HTML/JS) -> Click to reveal solutions -> Shows how the founder overcame early trust and technical barriers. 3. Business Model Evolution (Goal: Change/Process) -> Interactive Tabbed Interface (HTML/JS) -> Click tabs to see different growth stages (3A Hospitals -> ICL -> Grassroots). 4. Resource Integration Matrix (Goal: Organize) -> CSS Grid with Hover effects -> Visualizes the diverse social and financial capital puzzle. NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="antialiased">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white shadow-sm z-50 border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-blue-700">🔬 豪思生物案例分析</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#opportunity" class="text-slate-600 hover:text-blue-600 font-medium">机会识别</a>
+                    <a href="#dilemma" class="text-slate-600 hover:text-blue-600 font-medium">突破困境</a>
+                    <a href="#business-model" class="text-slate-600 hover:text-blue-600 font-medium">商业模式演进</a>
+                    <a href="#resources" class="text-slate-600 hover:text-blue-600 font-medium">资源整合</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="pt-24 pb-12 bg-slate-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
+                豪思生物：从“卡脖子”到“生态闭环”
+            </h1>
+            <p class="text-xl text-slate-300 max-w-3xl mx-auto mb-6">
+                MBA《创新创业管理》课程作业可视化展示
+            </p>
+            <div class="inline-block bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold tracking-wide shadow-lg">
+                核心愿景：让精准诊断惠及每一位民众
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <!-- Section 1: Opportunity Recognition -->
+        <section id="opportunity" class="scroll-mt-20">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-4">1. 创业机会的识别 (Market Gap)</h2>
+                <p class="text-lg text-slate-600 bg-white p-6 rounded-lg shadow-sm border border-slate-100 leading-relaxed">
+                    <strong>本模块解析：</strong>创新创业的起点在于发现结构性市场缝隙。本部分通过宏观市场数据的对比与微观行业痛点的剖析，展示了豪思生物如何基于“信息不对称”与“技术势能差”锚定临床质谱领域的切入点。用户可以通过右侧的数据图表直观感受到中美市场的巨大落差，这正是支撑企业估值的核心蓝海空间。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 flex items-center mb-2">
+                            <span class="text-2xl mr-2">🌍</span> 宏观势能差 (Macro Potential Difference)
+                        </h3>
+                        <p class="text-slate-600">美国质谱技术已被纳入医保（400+项目），实现全民普及。而国内渗透率极低，这种技术在海外成熟但在国内尚未普及的<strong>“势能差”</strong>，构成了巨大的蓝海商业机会。</p>
+                    </div>
+                    <hr class="border-slate-100">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 flex items-center mb-2">
+                            <span class="text-2xl mr-2">🔒</span> 微观“卡脖子”痛点 (Micro Pain Points)
+                        </h3>
+                        <ul class="list-disc list-inside text-slate-600 space-y-2">
+                            <li>高昂的行业准入门槛（完全依赖昂贵的进口仪器）。</li>
+                            <li>仪器操作极度复杂，需专人维护。</li>
+                            <li>缺乏本土化标准试剂。</li>
+                        </ul>
+                        <div class="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md text-sm border border-blue-100 font-medium">
+                            💡 商业洞察：痛点越深，意味着破局后的护城河越宽。
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 flex flex-col items-center justify-center">
+                    <h4 class="text-center text-slate-700 font-semibold mb-4">中美临床质谱技术市场渗透率对比估算</h4>
+                    <!-- Chart Container strictly styled -->
+                    <div class="chart-container">
+                        <canvas id="penetrationChart"></canvas>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-4 text-center">注：数据基于案例描述进行可视化模拟展现</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Overcoming Dilemmas & PMF -->
+        <section id="dilemma" class="scroll-mt-20">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-4">2. 突破创业困境与PMF验证</h2>
+                <p class="text-lg text-slate-600 bg-white p-6 rounded-lg shadow-sm border border-slate-100 leading-relaxed">
+                    <strong>本模块解析：</strong>初创企业最危险的阶段是没有客户，技术如何转化为商业价值是生死大考。本部分展示了豪思生物在早期如何跨越“信任鸿沟”，完成产品-市场契合度（PMF）验证，以及如何应对疫情等外部黑天鹅事件。点击下方卡片，查看豪思生物在关键节点的破局动作。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Card 1 -->
+                <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mb-4 font-bold">1</div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-3">跨越信任鸿沟：15分钟的“破冰”</h3>
+                    <p class="text-slate-600 mb-4">面对台下吃着盒饭、漫不经心的三甲医院科主任们，创始人栗琳利用赞助获取了15分钟推介时间。</p>
+                    <blockquote class="italic text-slate-500 border-l-4 border-slate-300 pl-4 mb-4 text-sm bg-slate-50 py-2">
+                        “你们要是想听我讲话，就不要再讲话了！把会场灯暗下来。”
+                    </blockquote>
+                    <button onclick="toggleDetail('pmf-detail-1')" class="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg transition-colors font-medium flex items-center w-full justify-center">
+                        查看破局结果 <span class="ml-1 text-lg">⬇️</span>
+                    </button>
+                    <div id="pmf-detail-1" class="hidden mt-4 p-4 bg-green-50 border border-green-100 rounded-md text-green-800 text-sm">
+                        凭借强势的专业控场，宣讲结束后科主任们纷纷主动交流。这标志着通过专业硬实力与创始人魄力，成功敲开了顶级三甲医院的大门，完成了核心客户群的初步验证（PMF）。首个可筛查阿尔茨海默病(AD)的早期诊断试剂盒成为突破口。
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mb-4 font-bold">2</div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-3">应对外部冲击与合规要求</h3>
+                    <p class="text-slate-600 mb-4">企业发展中经历了疫情的大规模冲击，同时医疗诊断产品面临极其严格的合规性要求（GMP基地、生产流程标准）。</p>
+                    <p class="text-sm text-slate-500 mb-4">从案例附录可见其严苛的质检与生产流程（10万级洁净区域）。</p>
+                    <button onclick="toggleDetail('pmf-detail-2')" class="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg transition-colors font-medium flex items-center w-full justify-center">
+                        查看护城河构建 <span class="ml-1 text-lg">⬇️</span>
+                    </button>
+                    <div id="pmf-detail-2" class="hidden mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md text-blue-800 text-sm">
+                        企业不仅建立起了标准的试剂盒生产流程（物料 -> 配制分装 -> 质检 -> 包装入库），更荣获国家级专精特新“小巨人”企业称号。这不仅是荣誉，更是政府对企业突破“卡脖子”技术的认可，极大地强化了抗风险能力与品牌壁垒。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Business Model Evolution -->
+        <section id="business-model" class="scroll-mt-20">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-4">3. 商业模式的演进 (第二曲线)</h2>
+                <p class="text-lg text-slate-600 bg-white p-6 rounded-lg shadow-sm border border-slate-100 leading-relaxed">
+                    <strong>本模块解析：</strong>商业模式并非静态不变。为了实现“让精准诊断惠及每一位民众”的愿景，豪思生物必须突破仅服务顶级医院的天花板。本区域通过动态标签页，梳理了其商业模式从“产品销售”向“服务平台”及“基层下沉”演变的三个关键阶段。点击不同标签，探索其业务逻辑的跃迁。
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <!-- Tabs -->
+                <div class="flex flex-wrap border-b border-slate-200 bg-slate-50">
+                    <button class="tab-btn active flex-1 py-4 px-6 text-center font-medium border-b-2 border-transparent focus:outline-none" onclick="openTab(event, 'stage1')">
+                        阶段一：高举高打
+                    </button>
+                    <button class="tab-btn flex-1 py-4 px-6 text-center font-medium border-b-2 border-transparent focus:outline-none" onclick="openTab(event, 'stage2')">
+                        阶段二：服务化转型
+                    </button>
+                    <button class="tab-btn flex-1 py-4 px-6 text-center font-medium border-b-2 border-transparent focus:outline-none" onclick="openTab(event, 'stage3')">
+                        阶段三：极致本土化下沉
+                    </button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="p-8">
+                    <div id="stage1" class="tab-content block animate-fade-in">
+                        <div class="flex flex-col md:flex-row items-center gap-8">
+                            <div class="flex-1">
+                                <h3 class="text-2xl font-bold text-slate-800 mb-3">直销模式 (头部三甲医院)</h3>
+                                <p class="text-slate-600 mb-4">
+                                    <strong>核心策略：</strong>通过独家早期诊断试剂盒（如阿尔茨海默病）作为敲门砖，直接切入核心三甲医院。
+                                </p>
+                                <p class="text-slate-600 mb-4">
+                                    <strong>战略目的：</strong>建立品牌势能和学术制高点。占领医疗金字塔的顶端，为后续业务提供权威背书。
+                                </p>
+                                <div class="inline-block px-3 py-1 bg-slate-100 text-slate-700 rounded text-sm font-medium">盈利方式：设备与配套标准试剂销售</div>
+                            </div>
+                            <div class="w-full md:w-1/3 flex justify-center text-7xl text-blue-500">
+                                🏥
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="stage2" class="tab-content hidden animate-fade-in">
+                        <div class="flex flex-col md:flex-row items-center gap-8">
+                            <div class="flex-1">
+                                <h3 class="text-2xl font-bold text-slate-800 mb-3">ICL模式 (第三方独立检验中心)</h3>
+                                <p class="text-slate-600 mb-4">
+                                    <strong>核心策略：</strong>自建第三方独立检验中心，转向“代客检测”。
+                                </p>
+                                <p class="text-slate-600 mb-4">
+                                    <strong>战略目的：</strong>覆盖买不起昂贵质谱设备的体检机构和中小医院。通过服务化转型，极大拓宽了营收天花板，将原本受制于资本支出的客户转化为持续的服务订阅客户。
+                                </p>
+                                <div class="inline-block px-3 py-1 bg-slate-100 text-slate-700 rounded text-sm font-medium">盈利方式：按次收费的检测服务费</div>
+                            </div>
+                            <div class="w-full md:w-1/3 flex justify-center text-7xl text-green-500">
+                                🔬
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="stage3" class="tab-content hidden animate-fade-in">
+                        <div class="flex flex-col md:flex-row items-center gap-8">
+                            <div class="flex-1">
+                                <h3 class="text-2xl font-bold text-slate-800 mb-3">长尾市场 (偏远基层医疗)</h3>
+                                <p class="text-slate-600 mb-4">
+                                    <strong>核心策略：</strong>利用设计思维，推出图文说明书、耗材防呆设计等。
+                                </p>
+                                <p class="text-slate-600 mb-4">
+                                    <strong>战略目的：</strong>降低技术操作门槛，打通偏远基层医疗市场。真正兑现“让精准诊断惠及每一位民众”的社会价值与企业终极愿景。
+                                </p>
+                                <div class="inline-block px-3 py-1 bg-slate-100 text-slate-700 rounded text-sm font-medium">核心能力：产品易用性与标准化供应链</div>
+                            </div>
+                            <div class="w-full md:w-1/3 flex justify-center text-7xl text-orange-500">
+                                🏘️
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Resource Integration -->
+        <section id="resources" class="scroll-mt-20 mb-20">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-4">4. 创业资源整合矩阵</h2>
+                <p class="text-lg text-slate-600 bg-white p-6 rounded-lg shadow-sm border border-slate-100 leading-relaxed">
+                    <strong>本模块解析：</strong>创业是对金融资本 (Financial Capital) 与社会资本 (Social Capital) 的极致调动与拼图构建。缺乏资源是常态，如何“无中生有”并形成生态合力是管理者的核心能力。将鼠标悬停在下方矩阵板块上，查看豪思生物如何整合四大核心资源网络。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Matrix Card 1 -->
+                <div class="resource-card bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="text-4xl mb-4">💰</div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">风险投资 (VC)</h3>
+                    <p class="text-sm text-slate-600 mb-4 h-16">成功引入华创资本、启明创投等一线资本(A轮至B+轮)。</p>
+                    <div class="absolute inset-0 bg-slate-900/95 backdrop-blur-sm border-t-4 border-blue-500 text-white p-6 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out flex flex-col justify-center">
+                        <h4 class="font-bold mb-2 text-blue-400">赋能核心效果：</h4>
+                        <p class="text-base leading-relaxed">提供跨越“死亡之谷”的强力弹药；支撑全国独立检验中心(ICL)的大规模重资产布局。</p>
+                    </div>
+                </div>
+
+                <!-- Matrix Card 2 -->
+                <div class="resource-card bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="text-4xl mb-4">🎓</div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">产学研网络</h3>
+                    <p class="text-sm text-slate-600 mb-4 h-16">依托清华大学建立基础研究平台；与西湖大学、上海交大深度合作。</p>
+                    <div class="absolute inset-0 bg-slate-900/95 backdrop-blur-sm border-t-4 border-indigo-500 text-white p-6 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out flex flex-col justify-center">
+                        <h4 class="font-bold mb-2 text-indigo-400">赋能核心效果：</h4>
+                        <p class="text-base leading-relaxed">显著降低早期前沿研发成本；获取顶尖临床痛点数据与行业权威学术背书。</p>
+                    </div>
+                </div>
+
+                <!-- Matrix Card 3 -->
+                <div class="resource-card bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="text-4xl mb-4">🏛️</div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">政策与政府</h3>
+                    <p class="text-sm text-slate-600 mb-4 h-16">紧跟国家政策，将GMP基地落户泰州等医药产业园；获评专精特新。</p>
+                    <div class="absolute inset-0 bg-slate-900/95 backdrop-blur-sm border-t-4 border-teal-500 text-white p-6 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out flex flex-col justify-center">
+                        <h4 class="font-bold mb-2 text-teal-400">赋能核心效果：</h4>
+                        <p class="text-base leading-relaxed">享受税收与审批绿色通道；解决合规生产场地限制，获得政府信任背书。</p>
+                    </div>
+                </div>
+
+                <!-- Matrix Card 4 -->
+                <div class="resource-card bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="text-4xl mb-4">🔗</div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">产业上下游</h3>
+                    <p class="text-sm text-slate-600 mb-4 h-16">与中国金茂、北科建等签订战略合作，跨界布局健康产业园。</p>
+                    <div class="absolute inset-0 bg-slate-900/95 backdrop-blur-sm border-t-4 border-amber-500 text-white p-6 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out flex flex-col justify-center">
+                        <h4 class="font-bold mb-2 text-amber-400">赋能核心效果：</h4>
+                        <p class="text-base leading-relaxed">拓宽广泛的B端渠道；形成从研发、生产到物业支持的生态闭环。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center text-sm border-t border-slate-800">
+        <p>基于《创新创业管理》课程案例分析构建交互式数据视图</p>
+        <p class="mt-2">Copyright © 2026 分析数据及文案来源于清华大学经济管理学院案例库及MBA作业</p>
+    </footer>
+
+    <!-- Interactive Logic -->
+    <script>
+        // 1. Chart.js Implementation for Market Penetration
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('penetrationChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['国内未渗透蓝海', '国内已渗透 (<1%)', '对比:美国医保覆盖(400+项目)'],
+                    datasets: [{
+                        data: [99, 1, 0], // The third value is 0 here to keep doughnut clean, used in legend
+                        backgroundColor: [
+                            '#e2e8f0', // slate-200
+                            '#2563eb', // blue-600
+                            '#10b981'  // green-500 (Conceptual marker)
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // CRITICAL for chart-container to control height
+                    cutout: '75%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#475569',
+                                font: {
+                                    family: "'Segoe UI', sans-serif",
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if(context.dataIndex === 2) {
+                                        return '美国已实现全民普及';
+                                    }
+                                    return context.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    }
+                }
+            });
+        });
+
+        // 2. Toggle Details Logic (PMF Cards)
+        function toggleDetail(id) {
+            const element = document.getElementById(id);
+            if (element.classList.contains('hidden')) {
+                element.classList.remove('hidden');
+                // Simple fade in effect
+                element.style.opacity = 0;
+                let opacity = 0;
+                const timer = setInterval(function() {
+                    if (opacity >= 1) clearInterval(timer);
+                    element.style.opacity = opacity;
+                    opacity += 0.1;
+                }, 20);
+            } else {
+                element.classList.add('hidden');
+            }
+        }
+
+        // 3. Tabbed Interface Logic (Business Model Evolution)
+        function openTab(evt, tabName) {
+            // Get all elements with class="tab-content" and hide them
+            const tabcontent = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+                tabcontent[i].classList.remove("block");
+            }
+
+            // Get all elements with class="tab-btn" and remove the class "active"
+            const tablinks = document.getElementsByClassName("tab-btn");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+
+            // Show the current tab, and add an "active" class to the button that opened the tab
+            const activeTab = document.getElementById(tabName);
+            activeTab.style.display = "block";
+            activeTab.classList.add("block");
+            
+            // Re-trigger tailwind styles for active
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
+</body>
+</html>
